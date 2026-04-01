@@ -30,7 +30,7 @@ extension AppSectionX on AppSection {
       case AppSection.historia:
         return 'Historia';
       case AppSection.congregacion:
-        return 'Congregaci+on Religiosa';
+        return 'Congregación Religiosa';
       case AppSection.dimensionesPastorales:
         return 'Dimensiones Pastorales';
       case AppSection.grupos:
