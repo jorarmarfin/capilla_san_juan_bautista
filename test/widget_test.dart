@@ -1,30 +1,39 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:capilla_san_juan_bautista/main.dart';
+import 'package:capilla_san_juan_bautista/app.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Carga home, slider y menu principal', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const CapillaApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('Inicio'), findsAtLeastNWidgets(1));
+    expect(find.text('Banners'), findsOneWidget);
+    expect(find.text('Redes sociales'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Capilla San Juan Bautista'), findsAtLeastNWidgets(1));
+    expect(find.text('Congregacion Religiosa'), findsAtLeastNWidgets(1));
+    expect(find.text('Dimensiones Pastorales'), findsAtLeastNWidgets(1));
+    expect(find.text('Grupos'), findsAtLeastNWidgets(1));
+    expect(find.text('Calendario'), findsAtLeastNWidgets(1));
+
+    await tester.tap(find.text('Dimensiones Pastorales').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Liturgia'), findsOneWidget);
+    expect(find.text('Koinonia'), findsOneWidget);
+    expect(find.text('Martyria'), findsOneWidget);
+    expect(find.text('Diakonia'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.home_outlined));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dimensiones Pastorales'), findsAtLeastNWidgets(1));
   });
 }
