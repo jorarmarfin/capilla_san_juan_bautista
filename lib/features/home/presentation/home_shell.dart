@@ -1,6 +1,7 @@
 import 'package:capilla_san_juan_bautista/features/calendario/presentation/calendario_page.dart';
 import 'package:capilla_san_juan_bautista/features/congregacion/presentation/congregacion_page.dart';
 import 'package:capilla_san_juan_bautista/features/coordinacion/presentation/coordinacion_page.dart';
+import 'package:capilla_san_juan_bautista/features/creditos/presentation/creditos_page.dart';
 import 'package:capilla_san_juan_bautista/features/dimensiones_pastorales/presentation/dimensiones_pastorales_page.dart';
 import 'package:capilla_san_juan_bautista/features/fotos/presentation/fotos_page.dart';
 import 'package:capilla_san_juan_bautista/features/grupos/presentation/grupos_page.dart';
@@ -18,27 +19,30 @@ enum AppSection {
   coordinacion,
   calendario,
   fotos,
+  creditos,
 }
 
 extension AppSectionX on AppSection {
   String get label {
     switch (this) {
       case AppSection.inicio:
-        return 'Inicio';
+        return 'Capilla San Juan Bautista';
       case AppSection.historia:
         return 'Historia';
       case AppSection.congregacion:
-        return 'Congregacion Religiosa';
+        return 'Congregaci+on Religiosa';
       case AppSection.dimensionesPastorales:
         return 'Dimensiones Pastorales';
       case AppSection.grupos:
         return 'Grupos';
       case AppSection.coordinacion:
-        return 'Coordinacion';
+        return 'Coordinación';
       case AppSection.calendario:
         return 'Calendario';
       case AppSection.fotos:
         return 'Fotos';
+      case AppSection.creditos:
+        return 'Créditos';
     }
   }
 }
@@ -71,6 +75,8 @@ class _HomeShellState extends State<HomeShell> {
         return const CalendarioPage();
       case AppSection.fotos:
         return const FotosPage();
+      case AppSection.creditos:
+        return const CreditosPage();
     }
   }
 
@@ -88,6 +94,7 @@ class _HomeShellState extends State<HomeShell> {
       case AppSection.congregacion:
       case AppSection.coordinacion:
       case AppSection.fotos:
+      case AppSection.creditos:
         return 0;
     }
   }

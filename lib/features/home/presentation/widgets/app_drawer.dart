@@ -103,6 +103,12 @@ class AppDrawer extends StatelessWidget {
               isSelected: currentSection == AppSection.fotos,
               onTap: () => onSectionSelected(AppSection.fotos),
             ),
+            _DrawerItem(
+              title: AppSection.creditos.label,
+              icon: Icons.favorite,
+              isSelected: currentSection == AppSection.creditos,
+              onTap: () => onSectionSelected(AppSection.creditos),
+            ),
           ],
         ),
       ),

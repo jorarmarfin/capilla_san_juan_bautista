@@ -21,6 +21,31 @@ void main() {
     expect(find.text('Grupos'), findsAtLeastNWidgets(1));
     expect(find.text('Calendario'), findsAtLeastNWidgets(1));
 
+    final drawerScrollable = find.descendant(
+      of: find.byType(Drawer),
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      find.text('Creditos'),
+      180,
+      scrollable: drawerScrollable,
+    );
+    expect(find.text('Creditos'), findsAtLeastNWidgets(1));
+
+    await tester.tap(find.text('Creditos').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Desarrollador'), findsOneWidget);
+    expect(find.text('Ing. Software'), findsOneWidget);
+    expect(find.text('Luis Fernando Mayta Campos'), findsOneWidget);
+    expect(find.text('luisitomayta.com'), findsOneWidget);
+    expect(find.text('Tecnologia'), findsOneWidget);
+    expect(find.text('Flutter'), findsOneWidget);
+    expect(find.text('Dart'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.menu));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('Dimensiones Pastorales').first);
     await tester.pumpAndSettle();
 
