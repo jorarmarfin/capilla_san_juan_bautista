@@ -28,6 +28,7 @@ flutter:
   assets:
     - assets/
     - assets/data/
+    - assets/grupos/
     - assets/icon.png
     - assets/icon_512x512.png
     - assets/capilla_san_juan_bautista.jpg

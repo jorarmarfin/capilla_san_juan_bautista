@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SacramentosPage extends StatefulWidget {
   const SacramentosPage({super.key});
@@ -171,10 +172,32 @@ class _ContactoSolicitud extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-        subtitle: Text(
-          'Acércate a la secretaría en horario de atención o llama al +51 999 000 111.',
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+        subtitle: RichText(
+          text: TextSpan(
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+            ),
+            children: [
+              const TextSpan(
+                text: 'Acércate a la secretaría en horario de atención o llama al ',
+              ),
+              WidgetSpan(
+                alignment: PlaceholderAlignment.baseline,
+                baseline: TextBaseline.alphabetic,
+                child: GestureDetector(
+                  onTap: () => launchUrl(Uri(scheme: 'tel', path: '+5116255500')),
+                  child: Text(
+                    '+51 1 6255500',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.primary,
+                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const TextSpan(text: '.'),
+            ],
           ),
         ),
       ),

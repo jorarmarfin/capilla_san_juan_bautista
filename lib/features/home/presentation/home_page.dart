@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:capilla_san_juan_bautista/core/config/app_config.dart';
 import 'package:capilla_san_juan_bautista/features/home/presentation/home_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
@@ -22,27 +25,32 @@ class _Oracion {
   final String autor;
 }
 
+class _Banner {
+  const _Banner({required this.title, required this.imageUrl});
+  final String title;
+  final String imageUrl;
+
+  factory _Banner.fromJson(Map<String, dynamic> json) => _Banner(
+        title: json['title'] as String,
+        imageUrl: '${AppConfig.storageUrl}/${json['image_path']}',
+      );
+}
+
 class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController(viewportFraction: 0.92);
   int _currentBanner = 0;
   Timer? _autoAdvanceTimer;
   _Oracion? _oracion;
-
-  // FIX 1: static const — no se recrea en cada build
-  static const List<String> _bannerImages = [
-    'https://images.unsplash.com/photo-1483695028939-5bb13f8648b0?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1466442929976-97f336a657be?auto=format&fit=crop&w=1200&q=80',
-    'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&w=1200&q=80',
-  ];
+  List<_Banner> _banners = [];
 
   @override
   void initState() {
     super.initState();
     _cargarOracionAleatoria();
-    // FIX 9: auto-avance del slider cada 5 segundos
+    _cargarBanners();
     _autoAdvanceTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (_pageController.hasClients) {
-        final next = (_currentBanner + 1) % _bannerImages.length;
+      if (_pageController.hasClients && _banners.length > 1) {
+        final next = (_currentBanner + 1) % _banners.length;
         _pageController.animateToPage(
           next,
           duration: const Duration(milliseconds: 400),
@@ -196,111 +204,115 @@ class _HomePageState extends State<HomePage> {
           // FIX 8: "Anuncios" en lugar de "Banners"
           Text('Anuncios', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),
-          SizedBox(
-            height: 170,
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: _bannerImages.length,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentBanner = index;
-                });
-              },
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: GestureDetector(
-                    onTap: () => _openLightbox(context, index),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.network(
-                            _bannerImages[index],
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: colorScheme.secondary.withValues(
-                                  alpha: 0.2,
-                                ),
+          if (_banners.isEmpty)
+            SizedBox(
+              height: 170,
+              child: Center(
+                child: LoadingAnimationWidget.beat(
+                  color: colorScheme.primary,
+                  size: 40,
+                ),
+              ),
+            )
+          else ...[
+            SizedBox(
+              height: 170,
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _banners.length,
+                onPageChanged: (index) =>
+                    setState(() => _currentBanner = index),
+                itemBuilder: (context, index) {
+                  final banner = _banners[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 10),
+                    child: GestureDetector(
+                      onTap: () => _openLightbox(context, index),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Image.network(
+                              banner.imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Container(
+                                color: colorScheme.secondary
+                                    .withValues(alpha: 0.2),
                                 alignment: Alignment.center,
                                 child: const Icon(Icons.image, size: 42),
-                              );
-                            },
-                          ),
-                          // FIX 3: sin Color() literals
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.53),
-                                ],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
                               ),
                             ),
-                          ),
-                          Positioned(
-                            left: 12,
-                            bottom: 12,
-                            child: Text(
-                              'Anuncio ${index + 1} (maqueta)',
-                              style: const TextStyle(
+                            DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.53),
+                                  ],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: 12,
+                              bottom: 12,
+                              child: Text(
+                                banner.title,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const Positioned(
+                              right: 10,
+                              top: 10,
+                              child: Icon(
+                                Icons.open_in_full,
                                 color: Colors.white,
-                                fontWeight: FontWeight.w600,
+                                size: 18,
                               ),
                             ),
-                          ),
-                          // Indicador de que es expandible
-                          const Positioned(
-                            right: 10,
-                            top: 10,
-                            child: Icon(
-                              Icons.open_in_full,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_banners.length, (index) {
+                final isActive = index == _currentBanner;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: isActive ? 20 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? colorScheme.primary
+                        : colorScheme.primary.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(100),
                   ),
                 );
-              },
+              }),
             ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(_bannerImages.length, (index) {
-              final isActive = index == _currentBanner;
-              return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                width: isActive ? 20 : 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? colorScheme.primary
-                      : colorScheme.primary.withValues(alpha: 0.28),
-                  borderRadius: BorderRadius.circular(100),
-                ),
-              );
-            }),
-          ),
+          ],
           const SizedBox(height: 18),
           Text('Horarios de misa', style: textTheme.titleLarge),
           const SizedBox(height: 10),
           Card(
             child: Column(
               children: const [
-                _ScheduleTile(day: 'Lunes a Viernes', time: '7:00 PM'),
+                _ScheduleTile(day: 'Jueves', time: '7:00 PM'),
                 Divider(height: 1),
-                _ScheduleTile(day: 'Sabado', time: '6:00 PM'),
-                Divider(height: 1),
-                _ScheduleTile(day: 'Domingo', time: '8:00 AM y 6:00 PM'),
+                _ScheduleTile(day: 'Sábado', time: '7:00 PM'),
               ],
             ),
           ),
@@ -404,13 +416,33 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _cargarBanners() async {
+    try {
+      final uri = Uri.parse(
+        '${AppConfig.baseUrl}/projects/${AppConfig.projectUuid}/banners',
+      );
+      final response = await http.get(uri);
+      if (response.statusCode != 200) return;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final list = (data['banners'] as List<dynamic>)
+          .map((e) => e as Map<String, dynamic>)
+          .where((e) => e['is_active'] == true)
+          .map(_Banner.fromJson)
+          .toList();
+      if (mounted) setState(() => _banners = list);
+    } catch (_) {
+      // Falla silenciosa — el slider queda vacío
+    }
+  }
+
   void _openLightbox(BuildContext context, int index) {
+    final banner = _banners[index];
     showDialog<void>(
       context: context,
       barrierColor: Colors.black87,
       builder: (_) => _BannerLightbox(
-        imageUrl: _bannerImages[index],
-        label: 'Anuncio ${index + 1}',
+        imageUrl: banner.imageUrl,
+        label: banner.title,
       ),
     );
   }

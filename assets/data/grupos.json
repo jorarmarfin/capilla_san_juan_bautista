@@ -6,7 +6,8 @@
     "descripcion": "Grupo de oración carismática (RCC) que celebra la acción del Espíritu Santo en la vida de cada persona. Sus reuniones se caracterizan por la alabanza, la adoración, el testimonio y la intercesión comunitaria.",
     "reunion": "Sábados 8:00 PM — Salón 1 y 2",
     "contacto": "Coordinador: Hnos. Julio Acha y Lucia Caparachin",
-    "color": "secondary"
+    "color": "secondary",
+    "imagen": null
   },
   {
     "nombre": "Sagrada Familia",
@@ -15,7 +16,8 @@
     "descripcion": "Espacio de encuentro y formación para matrimonios y familias. Reflexionan el Evangelio desde la vida cotidiana del hogar, fortaleciendo los vínculos conyugales y la educación cristiana de los hijos.",
     "reunion": "Viernes 8:00 PM — Segundo piso",
     "contacto": "Coordinadores: Luis Mayta y Lucy Sanchez",
-    "color": "tertiary"
+    "color": "tertiary",
+    "imagen": "assets/grupos/sagrada_familia.jpeg"
   },
   {
     "nombre": "Movimiento de la Esperanza",
@@ -24,7 +26,8 @@
     "descripcion": "El MOVES es un movimiento fundado por Madre Rosa Gatorno que convoca a jóvenes y adultos jóvenes en torno a la esperanza cristiana. Sus retiros y jornadas de oración son reconocidos como momentos de gracia en la comunidad.",
     "reunion": "Martes 7:20 PM — Biblioteca",
     "contacto": "Coordinador: Patty Martel",
-    "color": "primary"
+    "color": "primary",
+    "imagen": null
   },
   {
     "nombre": "Catequesis Familiar",
@@ -33,7 +36,8 @@
     "descripcion": "Prepara a niños y sus familias para recibir los sacramentos de la Iniciación Cristiana: Bautismo, Primera Comunión y Confirmación. Los padres participan activamente como primeros catequistas de sus hijos.",
     "reunion": "Por confirmar",
     "contacto": "Coordinadora: Hermana Ester",
-    "color": "neutral"
+    "color": "neutral",
+    "imagen": null
   },
   {
     "nombre": "Agua Viva",
@@ -42,7 +46,8 @@
     "descripcion": " - ",
     "reunion": " - ",
     "contacto": "Coordinador: ",
-    "color": "secondary"
+    "color": "secondary",
+    "imagen": null
   },
   {
     "nombre": "Adulto Mayor",
@@ -51,7 +56,8 @@
     "descripcion": "Acompaña a los hermanos de la tercera edad en su camino de fe, brindando espacio de encuentro, escucha y oración. Organiza visitas domiciliarias a quienes no pueden asistir a la capilla por motivos de salud.",
     "reunion": " - ",
     "contacto": "Coordinadora: ",
-    "color": "tertiary"
+    "color": "tertiary",
+    "imagen": null
   },
   {
     "nombre": "Pastoral de Confirmación",
@@ -60,6 +66,7 @@
     "descripcion": "Acompaña a adolescentes en su proceso de maduración de la fe para recibir el sacramento de la Confirmación. El itinerario incluye catequesis, convivencias, servicio comunitario y un retiro de profundización.",
     "reunion": "Sábados 3:00 PM — Aulas de catequesis",
     "contacto": "Coordinador: Brayan Cadenas",
-    "color": "primary"
+    "color": "primary",
+    "imagen": null
   }
 ]

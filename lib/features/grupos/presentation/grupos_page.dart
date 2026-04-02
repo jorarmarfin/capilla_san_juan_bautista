@@ -73,6 +73,7 @@ class _GrupoData {
     required this.reunion,
     required this.contacto,
     required this.color,
+    required this.imagen,
   });
 
   final String nombre;
@@ -82,6 +83,7 @@ class _GrupoData {
   final String reunion;
   final String contacto;
   final _GrupoColor color;
+  final String? imagen;
 
   factory _GrupoData.fromJson(Map<String, dynamic> json) {
     return _GrupoData(
@@ -92,6 +94,7 @@ class _GrupoData {
       reunion: json['reunion'] as String,
       contacto: json['contacto'] as String,
       color: _colorFromString(json['color'] as String),
+      imagen: json['imagen'] as String?,
     );
   }
 
@@ -214,6 +217,8 @@ class _GrupoCard extends StatelessWidget {
               ],
             ),
           ),
+          // Imagen
+          _GrupoImagen(imagen: grupo.imagen, accentColor: accentColor),
           // Cuerpo
           Padding(
             padding: const EdgeInsets.all(14),
@@ -243,6 +248,41 @@ class _GrupoCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _GrupoImagen extends StatelessWidget {
+  const _GrupoImagen({required this.imagen, required this.accentColor});
+
+  final String? imagen;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return AspectRatio(
+      aspectRatio: 16 / 7,
+      child: imagen != null && imagen!.isNotEmpty
+          ? Image.asset(
+              imagen!,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stack) =>
+                  _imagePlaceholder(accentColor, colorScheme),
+            )
+          : _imagePlaceholder(accentColor, colorScheme),
+    );
+  }
+
+  Widget _imagePlaceholder(Color accentColor, ColorScheme colorScheme) {
+    return Container(
+      color: accentColor.withValues(alpha: 0.08),
+      child: Icon(
+        Icons.image_outlined,
+        size: 32,
+        color: accentColor.withValues(alpha: 0.3),
       ),
     );
   }
