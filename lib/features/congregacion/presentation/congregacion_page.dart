@@ -40,6 +40,7 @@ class _CongregacionData {
     required this.mision,
     required this.actividades,
     this.activa = true,
+    this.imagen,
   });
 
   final String nombre;
@@ -50,13 +51,15 @@ class _CongregacionData {
   final String mision;
   final List<String> actividades;
   final bool activa;
+  final String? imagen;
 }
 
 const _carmelitas = _CongregacionData(
   nombre: 'Carmelitas Descalzas',
   subtitulo: 'Orden de Nuestra Señora del Monte Carmelo',
-  periodo: 'Desde 2010',
+  periodo: 'Desde 2019',
   icono: Icons.spa,
+  imagen: 'assets/carmelitas.jpeg',
   carisma:
       'Las Carmelitas Descalzas viven el carisma contemplativo heredado de '
       'Santa Teresa de Jesús y San Juan de la Cruz: la oración profunda, '
@@ -78,8 +81,9 @@ const _carmelitas = _CongregacionData(
 const _hijasStaAna = _CongregacionData(
   nombre: 'Hijas de Santa Ana',
   subtitulo: 'Congregación religiosa femenina',
-  periodo: 'Hasta 2010',
+  periodo: 'Hasta 2018',
   icono: Icons.auto_stories,
+  imagen: 'assets/hijas_de_santa_ana.jpg',
   carisma:
       'Las Hijas de Santa Ana centraron su carisma en la educación cristiana '
       'y el servicio a la familia. Su presencia en la capilla fue un pilar '
@@ -193,6 +197,13 @@ class _CongregacionCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          // Imagen
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: data.imagen != null
+                ? Image.asset(data.imagen!, fit: BoxFit.cover)
+                : _ImagePlaceholder(nombre: data.nombre),
           ),
           // Cuerpo
           Padding(
@@ -311,6 +322,12 @@ class _SecularesCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
+            // Imagen placeholder
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: _ImagePlaceholder(nombre: 'Seculares de Santa Ana'),
+            ),
+            const SizedBox(height: 12),
             Text(
               'Las Seculares de Santa Ana son laicas que abrazan el carisma '
               'de las Hijas de Santa Ana desde el mundo. Comprometidas con '
@@ -422,6 +439,39 @@ class _Divider extends StatelessWidget {
         ),
         Expanded(child: Divider(color: colorScheme.outlineVariant)),
       ],
+    );
+  }
+}
+
+class _ImagePlaceholder extends StatelessWidget {
+  const _ImagePlaceholder({required this.nombre});
+
+  final String nombre;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      color: colorScheme.surfaceContainerHighest,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.add_photo_alternate_outlined,
+            size: 36,
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            nombre,
+            style: TextStyle(
+              fontSize: 12,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }
