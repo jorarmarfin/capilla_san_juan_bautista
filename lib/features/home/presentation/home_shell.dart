@@ -1,3 +1,4 @@
+import 'package:capilla_san_juan_bautista/features/avisos_parroquiales/presentation/avisos_parroquiales_page.dart';
 import 'package:capilla_san_juan_bautista/features/calendario/presentation/calendario_page.dart';
 import 'package:capilla_san_juan_bautista/features/congregacion/presentation/congregacion_page.dart';
 import 'package:capilla_san_juan_bautista/features/coordinacion/presentation/coordinacion_page.dart';
@@ -15,6 +16,7 @@ import 'package:in_app_update/in_app_update.dart';
 
 enum AppSection {
   inicio,
+  avisosParroquiales,
   sacramentos,
   historia,
   congregacion,
@@ -31,6 +33,8 @@ extension AppSectionX on AppSection {
     switch (this) {
       case AppSection.inicio:
         return 'Capilla San Juan Bautista';
+      case AppSection.avisosParroquiales:
+        return 'Avisos de Capilla';
       case AppSection.sacramentos:
         return 'Sacramentos';
       case AppSection.historia:
@@ -88,6 +92,8 @@ class _HomeShellState extends State<HomeShell> {
     switch (_currentSection) {
       case AppSection.inicio:
         return HomePage(onNavigate: _navigateTo);
+      case AppSection.avisosParroquiales:
+        return const AvisosParroquialesPage();
       case AppSection.sacramentos:
         return const SacramentosPage();
       case AppSection.historia:

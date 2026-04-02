@@ -62,6 +62,12 @@ class AppDrawer extends StatelessWidget {
               onTap: () => onSectionSelected(AppSection.inicio),
             ),
             _DrawerItem(
+              title: AppSection.avisosParroquiales.label,
+              icon: Icons.campaign_outlined,
+              isSelected: currentSection == AppSection.avisosParroquiales,
+              onTap: () => onSectionSelected(AppSection.avisosParroquiales),
+            ),
+            _DrawerItem(
               title: AppSection.sacramentos.label,
               icon: Icons.church_outlined,
               isSelected: currentSection == AppSection.sacramentos,

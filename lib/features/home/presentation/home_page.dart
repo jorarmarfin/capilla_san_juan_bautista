@@ -36,18 +36,34 @@ class _Banner {
       );
 }
 
+class _Notice {
+  const _Notice({required this.title, required this.content, required this.author});
+  final String title;
+  final String content;
+  final String author;
+
+  factory _Notice.fromJson(Map<String, dynamic> json) => _Notice(
+        title: json['title'] as String,
+        content: json['content'] as String,
+        author: json['author'] as String,
+      );
+}
+
 class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController(viewportFraction: 0.92);
   int _currentBanner = 0;
   Timer? _autoAdvanceTimer;
   _Oracion? _oracion;
   List<_Banner> _banners = [];
+  List<_Notice> _notices = [];
+  bool _noticesLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _cargarOracionAleatoria();
     _cargarBanners();
+    _cargarNotices();
     _autoAdvanceTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (_pageController.hasClients && _banners.length > 1) {
         final next = (_currentBanner + 1) % _banners.length;
@@ -317,31 +333,38 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 18),
-          Text('Avisos parroquiales', style: textTheme.titleLarge),
-          const SizedBox(height: 10),
-          Card(
-            child: Column(
-              children: const [
-                _NoticeTile(
-                  icon: Icons.campaign_outlined,
-                  title: 'Retiro comunitario',
-                  subtitle: 'Este sabado 9:00 AM en el salon parroquial.',
-                ),
-                Divider(height: 1),
-                _NoticeTile(
-                  icon: Icons.favorite_outline,
-                  title: 'Campana solidaria',
-                  subtitle: 'Recoleccion de viveres hasta fin de mes.',
-                ),
-                Divider(height: 1),
-                _NoticeTile(
-                  icon: Icons.groups_2_outlined,
-                  title: 'Encuentro de familias',
-                  subtitle: 'Domingo luego de la misa de la tarde.',
-                ),
-              ],
+          if (_noticesLoaded && _notices.isNotEmpty) ...[
+            Text('Avisos de Capilla', style: textTheme.titleLarge),
+            const SizedBox(height: 10),
+            Card(
+              child: Column(
+                children: [
+                  for (int i = 0; i < _notices.length; i++) ...[
+                    if (i > 0) const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.campaign_outlined),
+                      title: Text(_notices[i].title),
+                      subtitle: Text(
+                        _notices[i].content,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    widget.onNavigate(AppSection.avisosParroquiales),
+                icon: const Icon(Icons.campaign_outlined),
+                label: const Text('Ver todos los avisos'),
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           Text('Servicios de la capilla', style: textTheme.titleLarge),
           const SizedBox(height: 10),
@@ -414,6 +437,24 @@ class _HomePageState extends State<HomePage> {
         duration: Duration(seconds: 2),
       ),
     );
+  }
+
+  Future<void> _cargarNotices() async {
+    try {
+      final uri = Uri.parse(
+        '${AppConfig.baseUrl}/projects/${AppConfig.projectUuid}/notices',
+      );
+      final response = await http.get(uri);
+      if (response.statusCode != 200) return;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final list = (data['notices'] as List<dynamic>)
+          .map((e) => _Notice.fromJson(e as Map<String, dynamic>))
+          .take(3)
+          .toList();
+      if (mounted) setState(() { _notices = list; _noticesLoaded = true; });
+    } catch (_) {
+      if (mounted) setState(() => _noticesLoaded = true);
+    }
   }
 
   Future<void> _cargarBanners() async {
@@ -599,26 +640,6 @@ class _ScheduleTile extends StatelessWidget {
   }
 }
 
-class _NoticeTile extends StatelessWidget {
-  const _NoticeTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(title),
-      subtitle: Text(subtitle),
-    );
-  }
-}
 
 class _ServicioTile extends StatelessWidget {
   const _ServicioTile({
