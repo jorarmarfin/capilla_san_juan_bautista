@@ -172,12 +172,6 @@ class _HomePageState extends State<HomePage> {
               clipBehavior: Clip.none,
               children: [
                 _QuickActionTile(
-                  icon: Icons.menu_book_outlined,
-                  label: 'Evangelio',
-                  onPressed: () =>
-                      widget.onNavigate(AppSection.evangelio),
-                ),
-                _QuickActionTile(
                   icon: Icons.groups_outlined,
                   label: 'Grupos',
                   onPressed: () =>

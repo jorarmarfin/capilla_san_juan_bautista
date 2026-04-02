@@ -1,16 +1,19 @@
 # Contexto del proyecto - Capilla San Juan Bautista
 
 ## 1) Objetivo del proyecto
-Aplicacion Flutter multiplataforma para la Capilla San Juan Bautista.
-El estado actual es una **maqueta UX funcional** con navegacion por `Drawer` + menu inferior, secciones pastorales y pagina de creditos.
+Aplicación Flutter multiplataforma para la Capilla San Juan Bautista.
+Estado actual: **maqueta UX funcional** con navegación por `Drawer` + menú inferior, secciones pastorales y página de créditos.
 
-## 2) Stack tecnico
+## 2) Stack técnico
 - Framework: Flutter (Material 3)
 - Lenguaje: Dart (SDK `^3.11.4`)
-- App package: `capilla_san_juan_bautista`
+- App package: `com.luisitomayta.capilla_san_juan_bautista`
 - Dependencias principales:
   - `flutter`
   - `cupertino_icons`
+  - `url_launcher: ^6.3.1`
+  - `in_app_update: ^4.2.3` — fuerza actualización desde Google Play (solo Android)
+  - `flutter_launcher_icons: ^0.14.4` (dev)
 - Testing:
   - `flutter_test`
   - `flutter_lints`
@@ -27,8 +30,8 @@ lib/
   features/
     home/
       presentation/
-        home_shell.dart
-        home_page.dart
+        home_shell.dart       ← enum AppSection + lógica de navegación + in_app_update
+        home_page.dart        ← pantalla de inicio (la más completa)
         widgets/
           app_drawer.dart
     historia/presentation/historia_page.dart
@@ -38,6 +41,8 @@ lib/
     fotos/presentation/fotos_page.dart
     congregacion/presentation/congregacion_page.dart
     dimensiones_pastorales/presentation/dimensiones_pastorales_page.dart
+    sacramentos/presentation/sacramentos_page.dart  ← página completa con cards expandibles
+    evangelio/presentation/evangelio_page.dart      ← página lista, SIN acceso en UI (pendiente API litúrgica)
     creditos/presentation/creditos_page.dart
   shared/
     widgets/
@@ -54,9 +59,9 @@ test/
   - `theme: AppTheme.light`
   - `home: HomeShell`
 
-## 5) Tema visual (decision clave)
-En `lib/core/theme/app_colors.dart` se aplico la decision de permutar colores:
-- `primary = #003B5C` (antes secundario visual del diseno)
+## 5) Tema visual
+En `lib/core/theme/app_colors.dart`:
+- `primary = #003B5C`
 - `secondary = #00ADEF`
 - `tertiary = #E78D1B`
 - `neutral = #F5F7F8`
@@ -67,28 +72,37 @@ En `lib/core/theme/app_theme.dart`:
 - Cards redondeadas y estilo uniforme
 - Drawer con bordes redondeados
 
-## 6) Navegacion actual
-### 6.1 HomeShell (`lib/features/home/presentation/home_shell.dart`)
-Controla seccion actual mediante `AppSection` y renderiza pagina segun el enum.
+## 6) Navegación actual
 
-Secciones registradas:
-- Inicio
-- Historia
-- Congregacion Religiosa
-- Dimensiones Pastorales
-- Grupos
-- Coordinacion
-- Calendario
-- Fotos
-- Creditos
+### 6.1 HomeShell (`lib/features/home/presentation/home_shell.dart`)
+Controla sección actual mediante `AppSection` y renderiza página según el enum.
+
+**`in_app_update` integrado aquí:** en `initState`, si la plataforma es Android (no web), llama
+`InAppUpdate.checkForUpdate()` y si hay actualización disponible ejecuta `performImmediateUpdate()`
+(flujo obligatorio de Google Play). Falla silenciosa en emuladores/sideload.
+
+Secciones registradas en `AppSection`:
+- `inicio`
+- `sacramentos`
+- `historia`
+- `congregacion`
+- `dimensionesPastorales`
+- `grupos`
+- `coordinacion`
+- `calendario`
+- `fotos`
+- `creditos`
+
+> `evangelio` fue **removido del enum y de la navegación** intencionalmente; la página existe
+> y está lista para reconectarse cuando se integre la API litúrgica real.
 
 ### 6.2 Drawer (`lib/features/home/presentation/widgets/app_drawer.dart`)
 - Header con branding de capilla
-- Lista de secciones del `AppSection`
-- Incluye item `Creditos` con icono de corazon (`Icons.favorite`)
+- Lista de secciones del `AppSection` (sin Evangelio)
+- Item `Créditos` con icono de corazón (`Icons.favorite`)
 - Usa `ListView` para evitar overflow en pantallas bajas
 
-### 6.3 Menu inferior
+### 6.3 Menú inferior
 `NavigationBar` con accesos:
 - Inicio
 - Calendario
@@ -96,84 +110,99 @@ Secciones registradas:
 - Dimensiones
 
 ## 7) Estado de las pantallas
-## 7.1 Inicio (`home_page.dart`)
-Pantalla mas completa de maqueta, incluye:
-- Foto principal (internet)
-- Oracion del dia
-- Accesos rapidos
+
+### 7.1 Inicio (`home_page.dart`)
+Pantalla más completa. Incluye:
+- Foto principal (internet, con `errorBuilder`)
+- Oración del día
+- Accesos rápidos (Grupos, Fotos, Sacramentos, Calendario, Historia, Dimensiones — sin Evangelio)
 - Slider de banners (internet)
 - Horarios de misa
 - Avisos parroquiales
 - Servicios de la capilla
 - Redes sociales
 
-Notas tecnicas:
-- Las imagenes de internet usan `errorBuilder` para no romper tests/widget rendering en entorno sin red.
+### 7.2 Sacramentos (`sacramentos_page.dart`)
+Página **completa** (no maqueta). Contiene:
+- Header descriptivo
+- Card de contacto/solicitud
+- 6 sacramentos (Bautismo, Primera Comunión, Confirmación, Matrimonio, Confesión, Unción de Enfermos)
+- Cada sacramento es una card expandible con descripción, requisitos y horario de contacto
+- `ValueKey('sacramentos_page')`
 
-## 7.2 Secciones de contenido (maqueta)
-`historia`, `grupos`, `coordinacion`, `calendario`, `fotos`, `congregacion`, `dimensiones_pastorales` usan `SectionPlaceholder` para presentar:
-- Titulo
-- Descripcion
-- Chips de highlights
-- Tarjeta de confirmacion "Maqueta UX"
+### 7.3 Evangelio (`evangelio_page.dart`)
+Página **completa** (no maqueta), pero **sin acceso desde la UI**. Contiene:
+- Cabecera litúrgica con día y tiempo litúrgico
+- Texto del evangelio (mock estático — Jn 14, 1-6)
+- Reflexión
+- Oración final
+- Próximas lecturas (3 días)
+- Nota: "Las lecturas se actualizarán con la API litúrgica."
+- `ValueKey('evangelio_page')`
+- **Para reactivar:** agregar `evangelio` al enum `AppSection`, label, `_buildSection()`,
+  item en `app_drawer.dart` y acceso rápido en `home_page.dart`.
 
-## 7.3 Creditos (`creditos_page.dart`)
-Pagina independiente con:
-- Bloque visual con icono de corazon
-- Datos del desarrollador:
-  - Ing. Software
-  - Luis Fernando Mayta Campos
-  - luisitomayta.com
-- Bloque de tecnologia:
-  - Flutter
-  - Dart
-  - Material 3 + arquitectura modular por features
+### 7.4 Secciones de contenido (maqueta)
+`historia`, `grupos`, `coordinacion`, `calendario`, `fotos`, `congregacion`, `dimensiones_pastorales`
+usan `SectionPlaceholder` para presentar título, descripción, chips de highlights y tarjeta "Maqueta UX".
 
-## 8) Testing actual
+### 7.5 Créditos (`creditos_page.dart`)
+- Bloque visual con icono de corazón
+- Desarrollador: Ing. Luis Fernando Mayta Campos / luisitomayta.com
+- Stack: Flutter · Dart · Material 3 · arquitectura modular por features
+
+## 8) Android — configuración de paquete
+- **applicationId / namespace:** `com.luisitomayta.capilla_san_juan_bautista`
+- **MainActivity.kt:** ubicado en
+  `android/app/src/main/kotlin/com/luisitomayta/capilla_san_juan_bautista/MainActivity.kt`
+  con `package com.luisitomayta.capilla_san_juan_bautista` ← fue corregido (antes decía `com.example...`)
+- Signing release configurado vía `key.properties` (no versionado)
+- `minSdk` / `targetSdk` / `compileSdk` tomados de `flutter.*` vars
+
+## 9) Testing actual
 Archivo: `test/widget_test.dart`
 
 Cobertura principal:
 - Render de Home
 - Apertura de Drawer
-- Navegacion a Creditos y validacion de contenido
-- Navegacion a Dimensiones Pastorales y validacion de highlights
-- Navegacion desde menu inferior
+- Navegación a Créditos y validación de contenido
+- Navegación a Dimensiones Pastorales y validación de highlights
+- Navegación desde menú inferior
 
 Comando base:
 ```bash
 flutter test
 ```
 
-## 9) Convenciones y decisiones de implementacion
+## 10) Convenciones y decisiones de implementación
 - Arquitectura simple por `features` + `core` + `shared`.
-- Pantallas en estado maqueta (sin backend).
-- Textos mayormente en espanol.
-- Se mantuvo compatibilidad con tests de widget y sin dependencias extra.
+- Pantallas en estado maqueta salvo Inicio, Sacramentos y Evangelio (estas tres son completas).
+- Textos en español.
+- Compatibilidad con tests de widget y sin dependencias extra.
+- `ValueKey` en cada página raíz para estabilidad de pruebas y `AnimatedSwitcher`.
+- Imágenes de internet siempre con `errorBuilder`.
 
-## 10) Pendientes recomendados (siguiente iteracion)
-1. Unificar ortografia/acentos en labels UI (por ejemplo: Coordinacion/Coordinacion, Creditos/Creditos segun criterio final).
-2. Hacer clickeable `luisitomayta.com` con `url_launcher`.
+## 11) Pendientes recomendados
+1. Reactivar Evangelio cuando esté lista la API litúrgica (ver sección 7.3 para pasos exactos).
+2. Hacer clickeable `luisitomayta.com` con `url_launcher` (ya está en dependencias).
 3. Extraer data mock a modelos/listas separadas para facilitar paso a backend.
-4. Agregar tests dedicados por pantalla (no solo smoke test unico).
-5. Registrar assets locales (logo/fotos reales de la capilla) para no depender de imagenes remotas.
+4. Agregar tests dedicados por pantalla (especialmente Sacramentos).
+5. Registrar assets locales (logo/fotos reales de la capilla).
+6. `in_app_update` solo actúa con APKs distribuidas por Google Play; en debug/emulador no muestra diálogo.
 
-## 11) Guia rapida para agentes que continen el proyecto
-### Si agregas una nueva seccion:
-1. Crear pagina en `lib/features/<seccion>/presentation/...`.
-2. Registrar en `AppSection` de `home_shell.dart`.
-3. Agregar label en extension `AppSectionX`.
-4. Agregar caso en `_buildSection()`.
-5. Incluir item en `app_drawer.dart`.
-6. Si aplica, mapear en `NavigationBar` inferior.
-7. Extender `test/widget_test.dart`.
-8. Ejecutar `flutter test`.
+## 12) Guía rápida para agregar una nueva sección
+1. Crear página en `lib/features/<seccion>/presentation/...`
+2. Agregar valor en enum `AppSection` en `home_shell.dart`
+3. Agregar label en extensión `AppSectionX`
+4. Agregar caso en `_buildSection()`
+5. Agregar item en `app_drawer.dart`
+6. Si aplica, mapear en `NavigationBar` inferior
+7. Extender `test/widget_test.dart`
+8. Ejecutar `flutter test`
 
 ### Si tocas Home:
-- Mantener `ValueKey('inicio_page')` para estabilidad de pruebas.
-- Conservar manejo de fallos de red en imagenes (`errorBuilder`).
+- Mantener `ValueKey('inicio_page')` para estabilidad de pruebas
+- Conservar manejo de fallos de red en imágenes (`errorBuilder`)
 
 ---
-Ultima actualizacion de este contexto: 2026-04-01.
-
-
-
+Última actualización: 2026-04-02

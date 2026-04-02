@@ -1,0 +1,20 @@
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon_512x512.png"
+  image_path_android: "assets/icon_512x512.png"
+  image_path_ios: "assets/icon_512x512.png"
+  min_sdk_android: 21
+
+  # Configuración para Android Adaptive Icons
+  android_adaptive_icon:
+    background_color: "#FFFFFF"
+    foreground_image: "assets/icon_512x512.png"
+
+  web:
+    generate: true
+  windows:
+    generate: true
+  macos:
+    generate: true
+

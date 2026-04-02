@@ -1,0 +1,53 @@
+[
+  {
+    "nombre": "Primera Comunión",
+    "subtitulo": "Eucaristía por primera vez",
+    "icono": "brightness_high",
+    "color": "tertiary",
+    "descripcion": "La Primera Eucaristía es el momento en que el niño recibe a Jesús en el pan consagrado por primera vez. Requiere un proceso de preparación catequética de al menos un año acompañado por la familia.",
+    "requisitos": [
+      "Estar bautizado",
+      "Inscripción en catequesis de Primera Comunión",
+      "Asistencia regular durante el año de formación",
+      "Partida de bautismo",
+      "Confesión previa al sacramento"
+    ],
+    "contacto": "Inscripciones en marzo — Aulas de catequesis",
+    "encargado": "Catequesis Familiar",
+    "foto_equipo": null
+  },
+  {
+    "nombre": "Confirmación Jóvenes",
+    "subtitulo": "Plenitud del Bautismo",
+    "icono": "local_fire_department",
+    "color": "primary",
+    "descripcion": "La Confirmación fortalece la gracia bautismal y une más perfectamente al joven confirmado con Cristo. El Espíritu Santo es donado para que el cristiano madure en su fe y la transmita a los demás.",
+    "requisitos": [
+      "Estar bautizado y haber hecho la Primera Comunión",
+      "Inscripción en el grupo Pastoral de Confirmación",
+      "Proceso de formación de 1 a 2 años",
+      "Elegir un padrino o madrina confirmado",
+      "Retiro espiritual previo"
+    ],
+    "contacto": "Sábados 3:00 PM — Aulas de catequesis",
+    "encargado": "Equipo de Confirmación",
+    "foto_equipo": null
+  },
+  {
+    "nombre": "Confirmación Adultos",
+    "subtitulo": "Iniciación cristiana para adultos",
+    "icono": "local_fire_department",
+    "color": "secondary",
+    "descripcion": "Proceso de iniciación cristiana pensado para adultos que no recibieron la Confirmación en su juventud. Se acompaña desde la fe vivida en la cotidianidad con un itinerario adaptado a su etapa de vida.",
+    "requisitos": [
+      "Estar bautizado y haber hecho la Primera Comunión",
+      "Inscripción en el grupo de Confirmación de adultos",
+      "Asistencia al proceso de formación",
+      "Elegir un padrino o madrina confirmado",
+      "Retiro espiritual previo"
+    ],
+    "contacto": "Coordinar con secretaría parroquial",
+    "encargado": "Equipo de Confirmación",
+    "foto_equipo": null
+  }
+]

@@ -3,18 +3,18 @@ import 'package:capilla_san_juan_bautista/features/congregacion/presentation/con
 import 'package:capilla_san_juan_bautista/features/coordinacion/presentation/coordinacion_page.dart';
 import 'package:capilla_san_juan_bautista/features/creditos/presentation/creditos_page.dart';
 import 'package:capilla_san_juan_bautista/features/dimensiones_pastorales/presentation/dimensiones_pastorales_page.dart';
-import 'package:capilla_san_juan_bautista/features/evangelio/presentation/evangelio_page.dart';
 import 'package:capilla_san_juan_bautista/features/sacramentos/presentation/sacramentos_page.dart';
 import 'package:capilla_san_juan_bautista/features/fotos/presentation/fotos_page.dart';
 import 'package:capilla_san_juan_bautista/features/grupos/presentation/grupos_page.dart';
 import 'package:capilla_san_juan_bautista/features/historia/presentation/historia_page.dart';
 import 'package:capilla_san_juan_bautista/features/home/presentation/home_page.dart';
 import 'package:capilla_san_juan_bautista/features/home/presentation/widgets/app_drawer.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:in_app_update/in_app_update.dart';
 
 enum AppSection {
   inicio,
-  evangelio,
   sacramentos,
   historia,
   congregacion,
@@ -31,8 +31,6 @@ extension AppSectionX on AppSection {
     switch (this) {
       case AppSection.inicio:
         return 'Capilla San Juan Bautista';
-      case AppSection.evangelio:
-        return 'Evangelio del día';
       case AppSection.sacramentos:
         return 'Sacramentos';
       case AppSection.historia:
@@ -67,12 +65,29 @@ class _HomeShellState extends State<HomeShell> {
   // FIX 7: índice del bottom nav independiente de la sección activa
   int _bottomIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      _checkForUpdate();
+    }
+  }
+
+  Future<void> _checkForUpdate() async {
+    try {
+      final info = await InAppUpdate.checkForUpdate();
+      if (info.updateAvailability == UpdateAvailability.updateAvailable) {
+        await InAppUpdate.performImmediateUpdate();
+      }
+    } catch (_) {
+      // Silencioso: si falla (no Play Store, emulador, etc.) la app continúa normal
+    }
+  }
+
   Widget _buildSection() {
     switch (_currentSection) {
       case AppSection.inicio:
         return HomePage(onNavigate: _navigateTo);
-      case AppSection.evangelio:
-        return const EvangelioPage();
       case AppSection.sacramentos:
         return const SacramentosPage();
       case AppSection.historia:
