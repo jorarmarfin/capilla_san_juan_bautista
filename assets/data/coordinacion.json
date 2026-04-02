@@ -1,0 +1,61 @@
+{
+  "consejo": [
+    {
+      "nombre": "Sr. Roberto Quispe",
+      "rol": "Coordinador",
+      "orden": 1,
+      "responsabilidades": [
+        "Presidir las reuniones del consejo",
+        "Representar a la capilla ante la parroquia",
+        "Coordinar las dimensiones pastorales",
+        "Convocar asambleas comunitarias"
+      ]
+    },
+    {
+      "nombre": "Sra. Patricia Flores",
+      "rol": "Subcoordinadora",
+      "orden": 1,
+      "responsabilidades": [
+        "Apoyar y reemplazar al coordinador",
+        "Supervisar los grupos pastorales",
+        "Gestionar el calendario de actividades"
+      ]
+    },
+    {
+      "nombre": "Srta. Carmen López",
+      "rol": "Secretaria",
+      "orden": 2,
+      "responsabilidades": [
+        "Redactar actas de reuniones",
+        "Gestionar comunicaciones oficiales",
+        "Archivar documentos del consejo"
+      ]
+    },
+    {
+      "nombre": "Sra. María Condori",
+      "rol": "Tesorera",
+      "orden": 2,
+      "responsabilidades": [
+        "Administrar los fondos de la capilla",
+        "Rendir cuentas en asamblea",
+        "Gestionar ingresos y egresos"
+      ]
+    }
+  ],
+  "contacto": {
+    "telefono": "+51 999 000 111",
+    "correo": "coordinacion@capillasanjuanbautista.pe",
+    "direccion": "Jr. Principal 123, San Juan Bautista"
+  },
+  "horarios_atencion": [
+    {
+      "dia": "Lunes y Miércoles",
+      "horario": "6:00 PM — 8:00 PM"
+    },
+    {
+      "dia": "Sábados",
+      "horario": "9:00 AM — 12:00 PM"
+    }
+  ],
+  "reunion_consejo": "Primer sábado de cada mes — Salón parroquial"
+}

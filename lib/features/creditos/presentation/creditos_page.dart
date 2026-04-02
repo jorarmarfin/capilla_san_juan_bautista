@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CreditosPage extends StatelessWidget {
   const CreditosPage({super.key});
@@ -46,10 +47,14 @@ class CreditosPage extends StatelessWidget {
             subtitle: 'Luis Fernando Mayta Campos',
           ),
           const SizedBox(height: 10),
-          const _InfoTile(
+          _InfoTile(
             icon: Icons.language,
             title: 'Sitio Web',
             subtitle: 'luisitomayta.com',
+            onTap: () => launchUrl(
+              Uri.parse('https://luisitomayta.com'),
+              mode: LaunchMode.externalApplication,
+            ),
           ),
           const SizedBox(height: 18),
           Text('Tecnologia', style: textTheme.titleLarge),
@@ -93,19 +98,31 @@ class _InfoTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       child: ListTile(
         leading: Icon(icon),
         title: Text(title),
-        subtitle: Text(subtitle),
+        subtitle: Text(
+          subtitle,
+          style: onTap != null
+              ? TextStyle(
+                  color: colorScheme.primary,
+                  decoration: TextDecoration.underline,
+                )
+              : null,
+        ),
+        onTap: onTap,
       ),
     );
   }

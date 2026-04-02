@@ -1,24 +1,60 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:capilla_san_juan_bautista/features/home/presentation/home_shell.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, required this.onNavigate});
+
+  final ValueChanged<AppSection> onNavigate;
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
+class _Oracion {
+  const _Oracion({required this.texto, required this.autor});
+  final String texto;
+  final String autor;
+}
+
 class _HomePageState extends State<HomePage> {
   final PageController _pageController = PageController(viewportFraction: 0.92);
   int _currentBanner = 0;
+  Timer? _autoAdvanceTimer;
+  _Oracion? _oracion;
 
-  final List<String> _bannerImages = const [
+  // FIX 1: static const — no se recrea en cada build
+  static const List<String> _bannerImages = [
     'https://images.unsplash.com/photo-1483695028939-5bb13f8648b0?auto=format&fit=crop&w=1200&q=80',
     'https://images.unsplash.com/photo-1466442929976-97f336a657be?auto=format&fit=crop&w=1200&q=80',
     'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?auto=format&fit=crop&w=1200&q=80',
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _cargarOracionAleatoria();
+    // FIX 9: auto-avance del slider cada 5 segundos
+    _autoAdvanceTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (_pageController.hasClients) {
+        final next = (_currentBanner + 1) % _bannerImages.length;
+        _pageController.animateToPage(
+          next,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _autoAdvanceTimer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -39,8 +75,8 @@ class _HomePageState extends State<HomePage> {
             child: Stack(
               alignment: Alignment.bottomLeft,
               children: [
-                Image.network(
-                  'https://images.unsplash.com/photo-1548625361-58f9b86fd5e9?auto=format&fit=crop&w=1600&q=80',
+                Image.asset(
+                  'assets/capilla_san_juan_bautista.jpg',
                   height: 210,
                   width: double.infinity,
                   fit: BoxFit.cover,
@@ -53,12 +89,16 @@ class _HomePageState extends State<HomePage> {
                     );
                   },
                 ),
+                // FIX 3: colores sin hardcodear
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0x00000000), Color(0xAA000000)],
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.68),
+                      ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                     ),
@@ -79,36 +119,88 @@ class _HomePageState extends State<HomePage> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Oracion del dia', style: textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Senor, danos un corazon humilde para servir a nuestra comunidad con alegria y esperanza.',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+              child: _oracion == null
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: CircularProgressIndicator.adaptive(),
+                      ),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.format_quote,
+                                color: colorScheme.primary, size: 20),
+                            const SizedBox(width: 8),
+                            Text('Oración del día',
+                                style: textTheme.titleMedium),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          _oracion!.texto,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                            height: 1.5,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            '— ${_oracion!.autor}',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
             ),
           ),
           const SizedBox(height: 14),
           Text('Accesos rapidos', style: textTheme.titleLarge),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: const [
-              _QuickActionChip(icon: Icons.schedule, label: 'Horarios'),
-              _QuickActionChip(icon: Icons.auto_stories, label: 'Evangelio'),
-              _QuickActionChip(icon: Icons.favorite, label: 'Intenciones'),
-              _QuickActionChip(icon: Icons.volunteer_activism, label: 'Ayuda'),
-            ],
+          SizedBox(
+            height: 88,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              children: [
+                _QuickActionTile(
+                  icon: Icons.menu_book_outlined,
+                  label: 'Evangelio',
+                  onPressed: () =>
+                      widget.onNavigate(AppSection.evangelio),
+                ),
+                _QuickActionTile(
+                  icon: Icons.groups_outlined,
+                  label: 'Grupos',
+                  onPressed: () =>
+                      widget.onNavigate(AppSection.grupos),
+                ),
+                _QuickActionTile(
+                  icon: Icons.photo_library_outlined,
+                  label: 'Fotos',
+                  onPressed: () =>
+                      widget.onNavigate(AppSection.fotos),
+                ),
+                _QuickActionTile(
+                  icon: Icons.church_outlined,
+                  label: 'Sacramentos',
+                  onPressed: () =>
+                      widget.onNavigate(AppSection.sacramentos),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 18),
-          Text('Banners', style: Theme.of(context).textTheme.titleLarge),
+          // FIX 8: "Anuncios" en lugar de "Banners"
+          Text('Anuncios', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),
           SizedBox(
             height: 170,
@@ -123,45 +215,62 @@ class _HomePageState extends State<HomePage> {
               itemBuilder: (context, index) {
                 return Padding(
                   padding: const EdgeInsets.only(right: 10),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(
-                          _bannerImages[index],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: colorScheme.secondary.withValues(
-                                alpha: 0.2,
+                  child: GestureDetector(
+                    onTap: () => _openLightbox(context, index),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(
+                            _bannerImages[index],
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: colorScheme.secondary.withValues(
+                                  alpha: 0.2,
+                                ),
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.image, size: 42),
+                              );
+                            },
+                          ),
+                          // FIX 3: sin Color() literals
+                          DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.53),
+                                ],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
                               ),
-                              alignment: Alignment.center,
-                              child: const Icon(Icons.image, size: 42),
-                            );
-                          },
-                        ),
-                        Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0x00000000), Color(0x88000000)],
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
                             ),
                           ),
-                        ),
-                        Positioned(
-                          left: 12,
-                          bottom: 12,
-                          child: Text(
-                            'Banner ${index + 1} (maqueta)',
-                            style: const TextStyle(
+                          Positioned(
+                            left: 12,
+                            bottom: 12,
+                            child: Text(
+                              'Anuncio ${index + 1} (maqueta)',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          // Indicador de que es expandible
+                          const Positioned(
+                            right: 10,
+                            top: 10,
+                            child: Icon(
+                              Icons.open_in_full,
                               color: Colors.white,
-                              fontWeight: FontWeight.w600,
+                              size: 18,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -231,57 +340,159 @@ class _HomePageState extends State<HomePage> {
           Text('Servicios de la capilla', style: textTheme.titleLarge),
           const SizedBox(height: 10),
           Row(
-            children: const [
+            children: [
               Expanded(
-                child: _ServiceCard(
-                  icon: Icons.church_outlined,
-                  title: 'Sacramentos',
-                  subtitle: 'Bautizo, matrimonio y confirmacion',
+                child: _ServicioTile(
+                  icon: Icons.auto_stories_outlined,
+                  label: 'Catequesis',
+                  onTap: () => _showProximamente(context),
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
-                child: _ServiceCard(
-                  icon: Icons.record_voice_over_outlined,
-                  title: 'Consejeria',
-                  subtitle: 'Acompanamiento pastoral',
+                child: _ServicioTile(
+                  icon: Icons.volunteer_activism_outlined,
+                  label: 'Solidaridad',
+                  onTap: () => _showProximamente(context),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ServicioTile(
+                  icon: Icons.location_on_outlined,
+                  label: 'Ubicación',
+                  onTap: () => launchUrl(
+                    Uri.parse(
+                      'https://www.google.com/maps?q=-12.0175726,-77.0034234',
+                    ),
+                    mode: LaunchMode.externalApplication,
+                  ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          const _ServiceCard(
-            icon: Icons.location_on_outlined,
-            title: 'Contacto y ubicacion',
-            subtitle: 'Jr. Principal 123, San Juan | +51 999 999 999',
           ),
           const SizedBox(height: 18),
           Text('Redes sociales', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              FilledButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.facebook),
-                label: const Text('Facebook'),
+          FilledButton.icon(
+            onPressed: () => launchUrl(
+              Uri.parse('https://www.facebook.com/capilla.bautista'),
+              mode: LaunchMode.externalApplication,
+            ),
+            icon: const Icon(Icons.facebook),
+            label: const Text('Facebook'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _cargarOracionAleatoria() async {
+    final raw = await rootBundle.loadString('assets/data/oraciones.json');
+    final lista = (jsonDecode(raw) as List<dynamic>);
+    final item = lista[Random().nextInt(lista.length)] as Map<String, dynamic>;
+    if (mounted) {
+      setState(() {
+        _oracion = _Oracion(
+          texto: item['texto'] as String,
+          autor: item['autor'] as String,
+        );
+      });
+    }
+  }
+
+  void _showProximamente(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Proximamente disponible'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _openLightbox(BuildContext context, int index) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => _BannerLightbox(
+        imageUrl: _bannerImages[index],
+        label: 'Anuncio ${index + 1}',
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Lightbox de banners
+// ---------------------------------------------------------------------------
+
+class _BannerLightbox extends StatelessWidget {
+  const _BannerLightbox({required this.imageUrl, required this.label});
+
+  final String imageUrl;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog.fullscreen(
+      backgroundColor: Colors.transparent,
+      child: Stack(
+        children: [
+          // Fondo negro tapeable para cerrar
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: const ColoredBox(
+              color: Colors.transparent,
+              child: SizedBox.expand(),
+            ),
+          ),
+          // Imagen centrada con interactividad
+          Center(
+            child: InteractiveViewer(
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stack) => const Icon(
+                  Icons.broken_image_outlined,
+                  color: Colors.white54,
+                  size: 64,
+                ),
               ),
-              FilledButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.camera_alt_outlined),
-                label: const Text('Instagram'),
-              ),
-              FilledButton.icon(
-                onPressed: () {},
-                style: FilledButton.styleFrom(
-                  backgroundColor: colorScheme.tertiary,
+            ),
+          ),
+          // Botón de cerrar
+          Positioned(
+            top: 16,
+            right: 16,
+            child: SafeArea(
+              child: IconButton.filled(
+                onPressed: () => Navigator.of(context).pop(),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black54,
                   foregroundColor: Colors.white,
                 ),
-                icon: const Icon(Icons.ondemand_video),
-                label: const Text('YouTube'),
+                icon: const Icon(Icons.close),
               ),
-            ],
+            ),
+          ),
+          // Label en la parte inferior
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -289,18 +500,59 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class _QuickActionChip extends StatelessWidget {
-  const _QuickActionChip({required this.icon, required this.label});
+// ---------------------------------------------------------------------------
+
+class _QuickActionTile extends StatelessWidget {
+  const _QuickActionTile({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
 
   final IconData icon;
   final String label;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return ActionChip(
-      onPressed: () {},
-      avatar: Icon(icon, size: 18),
-      label: Text(label),
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: 10),
+      child: Material(
+        color: colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(16),
+          child: SizedBox(
+            width: 72,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor:
+                      colorScheme.primary.withValues(alpha: 0.15),
+                  child: Icon(icon, size: 22, color: colorScheme.primary),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  style: textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -342,29 +594,50 @@ class _NoticeTile extends StatelessWidget {
   }
 }
 
-class _ServiceCard extends StatelessWidget {
-  const _ServiceCard({
+class _ServicioTile extends StatelessWidget {
+  const _ServicioTile({
     required this.icon,
-    required this.title,
-    required this.subtitle,
+    required this.label,
+    required this.onTap,
   });
 
   final IconData icon;
-  final String title;
-  final String subtitle;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        leading: CircleAvatar(
-          backgroundColor: colorScheme.primary.withValues(alpha: 0.14),
-          child: Icon(icon, color: colorScheme.primary),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: colorScheme.primaryContainer,
+                child: Icon(icon, color: colorScheme.primary, size: 22),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
-        title: Text(title),
-        subtitle: Text(subtitle),
       ),
     );
   }

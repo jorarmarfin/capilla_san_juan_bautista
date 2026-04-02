@@ -3,6 +3,8 @@ import 'package:capilla_san_juan_bautista/features/congregacion/presentation/con
 import 'package:capilla_san_juan_bautista/features/coordinacion/presentation/coordinacion_page.dart';
 import 'package:capilla_san_juan_bautista/features/creditos/presentation/creditos_page.dart';
 import 'package:capilla_san_juan_bautista/features/dimensiones_pastorales/presentation/dimensiones_pastorales_page.dart';
+import 'package:capilla_san_juan_bautista/features/evangelio/presentation/evangelio_page.dart';
+import 'package:capilla_san_juan_bautista/features/sacramentos/presentation/sacramentos_page.dart';
 import 'package:capilla_san_juan_bautista/features/fotos/presentation/fotos_page.dart';
 import 'package:capilla_san_juan_bautista/features/grupos/presentation/grupos_page.dart';
 import 'package:capilla_san_juan_bautista/features/historia/presentation/historia_page.dart';
@@ -12,6 +14,8 @@ import 'package:flutter/material.dart';
 
 enum AppSection {
   inicio,
+  evangelio,
+  sacramentos,
   historia,
   congregacion,
   dimensionesPastorales,
@@ -27,6 +31,10 @@ extension AppSectionX on AppSection {
     switch (this) {
       case AppSection.inicio:
         return 'Capilla San Juan Bautista';
+      case AppSection.evangelio:
+        return 'Evangelio del día';
+      case AppSection.sacramentos:
+        return 'Sacramentos';
       case AppSection.historia:
         return 'Historia';
       case AppSection.congregacion:
@@ -56,11 +64,17 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   AppSection _currentSection = AppSection.inicio;
+  // FIX 7: índice del bottom nav independiente de la sección activa
+  int _bottomIndex = 0;
 
   Widget _buildSection() {
     switch (_currentSection) {
       case AppSection.inicio:
-        return const HomePage();
+        return HomePage(onNavigate: _navigateTo);
+      case AppSection.evangelio:
+        return const EvangelioPage();
+      case AppSection.sacramentos:
+        return const SacramentosPage();
       case AppSection.historia:
         return const HistoriaPage();
       case AppSection.congregacion:
@@ -80,40 +94,22 @@ class _HomeShellState extends State<HomeShell> {
     }
   }
 
-  int _bottomIndexForSection(AppSection section) {
-    switch (section) {
-      case AppSection.inicio:
-        return 0;
-      case AppSection.calendario:
-        return 1;
-      case AppSection.grupos:
-        return 2;
-      case AppSection.dimensionesPastorales:
-        return 3;
-      case AppSection.historia:
-      case AppSection.congregacion:
-      case AppSection.coordinacion:
-      case AppSection.fotos:
-      case AppSection.creditos:
-        return 0;
-    }
+  void _navigateTo(AppSection section) {
+    setState(() => _currentSection = section);
   }
 
   void _onBottomDestinationSelected(int index) {
     setState(() {
+      _bottomIndex = index; // FIX 7: solo actualiza cuando el usuario toca el bottom nav
       switch (index) {
         case 0:
           _currentSection = AppSection.inicio;
-          break;
         case 1:
           _currentSection = AppSection.calendario;
-          break;
         case 2:
           _currentSection = AppSection.grupos;
-          break;
         case 3:
           _currentSection = AppSection.dimensionesPastorales;
-          break;
       }
     });
   }
@@ -131,28 +127,37 @@ class _HomeShellState extends State<HomeShell> {
           Navigator.of(context).pop();
         },
       ),
+      // FIX 2: KeyedSubtree para que AnimatedSwitcher detecte el cambio de sección
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 250),
-        child: _buildSection(),
+        child: KeyedSubtree(
+          key: ValueKey(_currentSection),
+          child: _buildSection(),
+        ),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _bottomIndexForSection(_currentSection),
+        selectedIndex: _bottomIndex, // FIX 7
         onDestinationSelected: _onBottomDestinationSelected,
+        // FIX 6: selectedIcon con variante rellena en cada destino
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
             label: 'Inicio',
           ),
           NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month),
             label: 'Calendario',
           ),
           NavigationDestination(
             icon: Icon(Icons.groups_outlined),
+            selectedIcon: Icon(Icons.groups),
             label: 'Grupos',
           ),
           NavigationDestination(
             icon: Icon(Icons.auto_awesome_outlined),
+            selectedIcon: Icon(Icons.auto_awesome),
             label: 'Dimensiones',
           ),
         ],

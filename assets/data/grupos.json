@@ -1,0 +1,72 @@
+[
+  {
+    "nombre": "Emanuel",
+    "subtitulo": "\"Dios con nosotros\"",
+    "icono": "flare",
+    "categoria": "jovenes",
+    "descripcion": "Grupo de jóvenes que viven su fe con alegría y compromiso. A través de la oración, el servicio y el encuentro fraterno, anuncian que Cristo es la respuesta a las preguntas profundas de la vida. Abierto a jóvenes de 16 a 30 años.",
+    "reunion": "Viernes 7:00 PM — Salón principal",
+    "contacto": "Coordinador: Hnos. del grupo",
+    "color": "secondary"
+  },
+  {
+    "nombre": "Sagrada Familia",
+    "subtitulo": "Pastoral familiar",
+    "icono": "family_restroom",
+    "categoria": "familias",
+    "descripcion": "Espacio de encuentro y formación para matrimonios y familias. Reflexionan el Evangelio desde la vida cotidiana del hogar, fortaleciendo los vínculos conyugales y la educación cristiana de los hijos.",
+    "reunion": "Sábados 5:00 PM — Capilla lateral",
+    "contacto": "Coordinadores: Matrimonios del grupo",
+    "color": "tertiary"
+  },
+  {
+    "nombre": "Movimiento de la Esperanza",
+    "subtitulo": "MOVES",
+    "icono": "wb_sunny",
+    "categoria": "jovenes",
+    "descripcion": "El MOVES es un movimiento de renovación espiritual que convoca a jóvenes y adultos jóvenes en torno a la esperanza cristiana. Sus retiros y jornadas de oración son reconocidos como momentos de gracia en la comunidad.",
+    "reunion": "Domingos 4:00 PM — Salón de reuniones",
+    "contacto": "Coordinador: Equipo MOVES",
+    "color": "primary"
+  },
+  {
+    "nombre": "Catequesis Familiar",
+    "subtitulo": "Formación para padres e hijos",
+    "icono": "menu_book",
+    "categoria": "formacion",
+    "descripcion": "Prepara a niños y sus familias para recibir los sacramentos de la Iniciación Cristiana: Bautismo, Primera Comunión y Confirmación. Los padres participan activamente como primeros catequistas de sus hijos.",
+    "reunion": "Sábados 9:00 AM — Aulas de catequesis",
+    "contacto": "Coordinadora: Equipo de catequistas",
+    "color": "neutral"
+  },
+  {
+    "nombre": "Agua Viva",
+    "subtitulo": "Renovación carismática",
+    "icono": "waves",
+    "categoria": "formacion",
+    "descripcion": "Grupo de oración carismática que celebra la acción del Espíritu Santo en la vida de cada persona. Sus reuniones se caracterizan por la alabanza, la adoración, el testimonio y la intercesión comunitaria.",
+    "reunion": "Miércoles 7:30 PM — Iglesia principal",
+    "contacto": "Coordinador: Líderes del grupo",
+    "color": "secondary"
+  },
+  {
+    "nombre": "Adulto Mayor",
+    "subtitulo": "Pastoral de la tercera edad",
+    "icono": "elderly",
+    "categoria": "servicio",
+    "descripcion": "Acompaña a los hermanos de la tercera edad en su camino de fe, brindando espacio de encuentro, escucha y oración. Organiza visitas domiciliarias a quienes no pueden asistir a la capilla por motivos de salud.",
+    "reunion": "Martes 10:00 AM — Salón parroquial",
+    "contacto": "Coordinadora: Voluntarios del grupo",
+    "color": "tertiary"
+  },
+  {
+    "nombre": "Pastoral de Confirmación",
+    "subtitulo": "Iniciación cristiana para adolescentes",
+    "icono": "local_fire_department",
+    "categoria": "formacion",
+    "descripcion": "Acompaña a adolescentes en su proceso de maduración de la fe para recibir el sacramento de la Confirmación. El itinerario incluye catequesis, convivencias, servicio comunitario y un retiro de profundización.",
+    "reunion": "Sábados 3:00 PM — Aulas de catequesis",
+    "contacto": "Coordinador: Equipo de confirmación",
+    "color": "primary"
+  }
+]
