@@ -1,7 +1,7 @@
 name: capilla_san_juan_bautista
 description: "Aplicación de la Capilla San Juan Bautista."
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: ^3.11.4
@@ -35,3 +35,6 @@ flutter:
     - assets/capilla_san_juan_bautista_old.jpg
     - assets/hijas_de_santa_ana.jpg
     - assets/carmelitas.jpeg
+    - assets/chio.jpg
+    - assets/mirtha.png
+    - assets/hernan.png

@@ -1,9 +1,10 @@
 {
   "consejo": [
     {
-      "nombre": "Sr. Roberto Quispe",
+      "nombre": "Srta. Rocio Chavez",
       "rol": "Coordinador",
       "orden": 1,
+      "imagen": "assets/chio.jpg",
       "responsabilidades": [
         "Presidir las reuniones del consejo",
         "Representar a la capilla ante la parroquia",
@@ -12,9 +13,10 @@
       ]
     },
     {
-      "nombre": "Sra. Patricia Flores",
+      "nombre": "Sr. Hernan Salazar",
       "rol": "Subcoordinadora",
       "orden": 1,
+      "imagen": "assets/hernan.png",
       "responsabilidades": [
         "Apoyar y reemplazar al coordinador",
         "Supervisar los grupos pastorales",
@@ -22,9 +24,10 @@
       ]
     },
     {
-      "nombre": "Srta. Carmen López",
+      "nombre": "Sra. Isabel Vallejo",
       "rol": "Secretaria",
       "orden": 2,
+      "imagen": null,
       "responsabilidades": [
         "Redactar actas de reuniones",
         "Gestionar comunicaciones oficiales",
@@ -32,9 +35,10 @@
       ]
     },
     {
-      "nombre": "Sra. María Condori",
+      "nombre": "Sra. Mirtha",
       "rol": "Tesorera",
       "orden": 2,
+      "imagen": "assets/mirtha.png",
       "responsabilidades": [
         "Administrar los fondos de la capilla",
         "Rendir cuentas en asamblea",

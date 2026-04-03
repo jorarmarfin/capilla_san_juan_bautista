@@ -1,4 +1,10 @@
+import 'dart:convert';
+
+import 'package:capilla_san_juan_bautista/core/config/app_config.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CalendarioPage extends StatefulWidget {
   const CalendarioPage({super.key});
@@ -8,294 +14,235 @@ class CalendarioPage extends StatefulWidget {
 }
 
 class _CalendarioPageState extends State<CalendarioPage> {
-  _FiltroMes _mesFiltro = _FiltroMes.abril;
+  late final Future<List<_CalEvento>> _future;
+  String? _mesFiltro; // clave "YYYY-MM"
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _fetchEventos();
+  }
+
+  static Future<List<_CalEvento>> _fetchEventos() async {
+    final uri = Uri.parse(
+      '${AppConfig.baseUrl}/projects/${AppConfig.projectUuid}/events',
+    );
+    final response = await http.get(uri);
+    if (response.statusCode != 200) {
+      throw Exception('Error ${response.statusCode}');
+    }
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return (data['events'] as List<dynamic>)
+        .map((e) => _CalEvento.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  // "YYYY-MM" desde un DateTime
+  static String _mesKey(DateTime dt) =>
+      '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
+
+  // Nombre completo del mes, incluye año solo si difiere del actual
+  static String _mesNombre(String key) {
+    const nombres = [
+      '',
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    final parts = key.split('-');
+    if (parts.length < 2) return key;
+    final month = int.tryParse(parts[1]) ?? 0;
+    final year = parts[0];
+    final currentYear = DateTime.now().year.toString();
+    return year == currentYear ? nombres[month] : '${nombres[month]} $year';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final eventosFiltrados = _eventos
-        .where((e) => e.mes == _mesFiltro)
-        .toList()
-      ..sort((a, b) => a.dia.compareTo(b.dia));
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return SingleChildScrollView(
-      key: const ValueKey('calendario_page'),
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _PageHeader(),
-          const SizedBox(height: 20),
-          _MesSelectorRow(
-            seleccionado: _mesFiltro,
-            onChanged: (m) => setState(() => _mesFiltro = m),
+    return FutureBuilder<List<_CalEvento>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Center(
+            child: LoadingAnimationWidget.beat(
+              color: colorScheme.primary,
+              size: 48,
+            ),
+          );
+        }
+
+        if (snapshot.hasError || snapshot.data == null) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.cloud_off_outlined,
+                  size: 48,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No se pudieron cargar los eventos.',
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final todos = snapshot.data!;
+
+        // Meses únicos presentes en los eventos, ordenados
+        final meses = todos
+            .map((e) => _mesKey(e.startDate))
+            .toSet()
+            .toList()
+          ..sort();
+
+        // Filtro activo: el guardado en estado (si sigue vigente) o el primero
+        final filtroActivo =
+            _mesFiltro != null && meses.contains(_mesFiltro)
+                ? _mesFiltro!
+                : (meses.isNotEmpty ? meses.first : null);
+
+        final filtrados = filtroActivo != null
+            ? (todos
+                .where((e) => _mesKey(e.startDate) == filtroActivo)
+                .toList()
+              ..sort((a, b) => a.startDate.compareTo(b.startDate)))
+            : (todos.toList()
+              ..sort((a, b) => a.startDate.compareTo(b.startDate)));
+
+        return SingleChildScrollView(
+          key: const ValueKey('calendario_page'),
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _PageHeader(),
+              const SizedBox(height: 20),
+              if (meses.length > 1) ...[
+                _MesSelectorRow(
+                  meses: meses,
+                  seleccionado: filtroActivo,
+                  onChanged: (m) => setState(() => _mesFiltro = m),
+                ),
+                const SizedBox(height: 20),
+              ],
+              const _HorariosCard(),
+              const SizedBox(height: 24),
+              _EventosSection(
+                eventos: filtrados,
+                mesLabel: filtroActivo != null
+                    ? _mesNombre(filtroActivo)
+                    : 'Próximos',
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
-          const _HorariosCard(),
-          const SizedBox(height: 24),
-          _EventosSection(eventos: eventosFiltrados, mes: _mesFiltro),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Enums y modelo
+// Modelo
 // ---------------------------------------------------------------------------
 
-enum _FiltroMes { marzo, abril, mayo, junio }
-
-enum _TipoEvento { misa, formacion, servicio, celebracion, retiro }
-
-extension _FiltroMesLabel on _FiltroMes {
-  String get label => switch (this) {
-        _FiltroMes.marzo => 'Mar',
-        _FiltroMes.abril => 'Abr',
-        _FiltroMes.mayo => 'May',
-        _FiltroMes.junio => 'Jun',
-      };
-
-  String get nombre => switch (this) {
-        _FiltroMes.marzo => 'Marzo',
-        _FiltroMes.abril => 'Abril',
-        _FiltroMes.mayo => 'Mayo',
-        _FiltroMes.junio => 'Junio',
-      };
-}
-
-extension _TipoEventoInfo on _TipoEvento {
-  String get label => switch (this) {
-        _TipoEvento.misa => 'Misa',
-        _TipoEvento.formacion => 'Formación',
-        _TipoEvento.servicio => 'Servicio',
-        _TipoEvento.celebracion => 'Celebración',
-        _TipoEvento.retiro => 'Retiro',
-      };
-
-  IconData get icono => switch (this) {
-        _TipoEvento.misa => Icons.church,
-        _TipoEvento.formacion => Icons.menu_book,
-        _TipoEvento.servicio => Icons.volunteer_activism,
-        _TipoEvento.celebracion => Icons.celebration,
-        _TipoEvento.retiro => Icons.self_improvement,
-      };
-}
-
-class _Evento {
-  const _Evento({
-    required this.titulo,
-    required this.dia,
-    required this.mes,
-    required this.hora,
-    required this.lugar,
-    required this.tipo,
-    this.descripcion,
+class _CalEvento {
+  const _CalEvento({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.category,
+    required this.startDate,
+    required this.startTime,
+    this.location,
   });
 
-  final String titulo;
-  final int dia;
-  final _FiltroMes mes;
-  final String hora;
-  final String lugar;
-  final _TipoEvento tipo;
-  final String? descripcion;
+  final int id;
+  final String title;
+  final String description;
+  final String category;
+  final DateTime startDate;
+  final String startTime; // "HH:MM" para mostrar
+  final String? location; // URL de Google Maps, texto plano, o null
+
+  bool get hasLocationUrl =>
+      location != null && location!.startsWith('http');
+
+  factory _CalEvento.fromJson(Map<String, dynamic> json) {
+    final locationRaw = json['location'] as String?;
+    return _CalEvento(
+      id: json['id'] as int,
+      title: json['title'] as String,
+      description: json['description'] as String? ?? '',
+      category: json['category'] as String? ?? '',
+      startDate: DateTime.parse(json['start_date'] as String),
+      startTime: _fmtTime(json['start_time'] as String? ?? ''),
+      location:
+          (locationRaw == null || locationRaw.isEmpty) ? null : locationRaw,
+    );
+  }
+
+  // "HH:MM:SS" → "HH:MM"
+  static String _fmtTime(String raw) =>
+      raw.length >= 5 ? raw.substring(0, 5) : raw;
 }
 
 // ---------------------------------------------------------------------------
-// Datos mock
+// Helpers de categoría → color / ícono
 // ---------------------------------------------------------------------------
 
-const _eventos = <_Evento>[
-  // Marzo
-  _Evento(
-    titulo: 'Misa dominical',
-    dia: 2,
-    mes: _FiltroMes.marzo,
-    hora: '8:00 AM y 6:00 PM',
-    lugar: 'Iglesia principal',
-    tipo: _TipoEvento.misa,
-  ),
-  _Evento(
-    titulo: 'Retiro de Cuaresma',
-    dia: 8,
-    mes: _FiltroMes.marzo,
-    hora: '9:00 AM — 5:00 PM',
-    lugar: 'Salón parroquial',
-    tipo: _TipoEvento.retiro,
-    descripcion: 'Jornada de reflexión y oración para toda la comunidad.',
-  ),
-  _Evento(
-    titulo: 'Vía Crucis comunitario',
-    dia: 15,
-    mes: _FiltroMes.marzo,
-    hora: '7:00 PM',
-    lugar: 'Recorrido por el barrio',
-    tipo: _TipoEvento.celebracion,
-    descripcion: 'Recorrido por las calles del barrio meditando la Pasión.',
-  ),
-  _Evento(
-    titulo: 'Catequesis Familiar',
-    dia: 22,
-    mes: _FiltroMes.marzo,
-    hora: '9:00 AM',
-    lugar: 'Aulas de catequesis',
-    tipo: _TipoEvento.formacion,
-  ),
-  _Evento(
-    titulo: 'Colecta solidaria',
-    dia: 29,
-    mes: _FiltroMes.marzo,
-    hora: 'Todo el día',
-    lugar: 'Puerta de la capilla',
-    tipo: _TipoEvento.servicio,
-    descripcion: 'Recolección de víveres para familias necesitadas.',
-  ),
+Color _categoryColor(ColorScheme cs, String category) {
+  return switch (category.toLowerCase()) {
+    'misa' => cs.primary,
+    'formación' || 'formacion' => cs.secondary,
+    'servicio' => cs.tertiary,
+    'celebración' || 'celebracion' => const Color(0xFF7B44C8),
+    'retiro' => cs.primary,
+    _ => cs.secondary,
+  };
+}
 
-  // Abril
-  _Evento(
-    titulo: 'Domingo de Ramos',
-    dia: 6,
-    mes: _FiltroMes.abril,
-    hora: '8:00 AM',
-    lugar: 'Atrio de la capilla',
-    tipo: _TipoEvento.celebracion,
-    descripcion: 'Procesión y misa de inicio de la Semana Santa.',
-  ),
-  _Evento(
-    titulo: 'Misa Crismal',
-    dia: 10,
-    mes: _FiltroMes.abril,
-    hora: '7:00 PM',
-    lugar: 'Iglesia principal',
-    tipo: _TipoEvento.misa,
-  ),
-  _Evento(
-    titulo: 'Jueves Santo',
-    dia: 11,
-    mes: _FiltroMes.abril,
-    hora: '6:00 PM',
-    lugar: 'Iglesia principal',
-    tipo: _TipoEvento.celebracion,
-    descripcion: 'Misa de la Última Cena y adoración nocturna.',
-  ),
-  _Evento(
-    titulo: 'Viernes Santo — Pasión',
-    dia: 12,
-    mes: _FiltroMes.abril,
-    hora: '3:00 PM',
-    lugar: 'Iglesia principal',
-    tipo: _TipoEvento.celebracion,
-    descripcion: 'Celebración de la Pasión del Señor y veneración de la Cruz.',
-  ),
-  _Evento(
-    titulo: 'Vigilia Pascual',
-    dia: 13,
-    mes: _FiltroMes.abril,
-    hora: '8:00 PM',
-    lugar: 'Iglesia principal',
-    tipo: _TipoEvento.celebracion,
-    descripcion: 'La noche más importante del año litúrgico.',
-  ),
-  _Evento(
-    titulo: 'Domingo de Resurrección',
-    dia: 14,
-    mes: _FiltroMes.abril,
-    hora: '8:00 AM y 6:00 PM',
-    lugar: 'Iglesia principal',
-    tipo: _TipoEvento.misa,
-  ),
-  _Evento(
-    titulo: 'Reunión del consejo',
-    dia: 19,
-    mes: _FiltroMes.abril,
-    hora: '9:00 AM',
-    lugar: 'Salón parroquial',
-    tipo: _TipoEvento.formacion,
-    descripcion: 'Primera reunión mensual del Consejo de Coordinación.',
-  ),
-  _Evento(
-    titulo: 'Encuentro grupo Emanuel',
-    dia: 25,
-    mes: _FiltroMes.abril,
-    hora: '7:00 PM',
-    lugar: 'Salón principal',
-    tipo: _TipoEvento.formacion,
-  ),
+IconData _categoryIcon(String category) {
+  return switch (category.toLowerCase()) {
+    'misa' => Icons.church,
+    'formación' || 'formacion' => Icons.menu_book,
+    'servicio' => Icons.volunteer_activism,
+    'celebración' || 'celebracion' => Icons.celebration,
+    'retiro' => Icons.self_improvement,
+    _ => Icons.event,
+  };
+}
 
-  // Mayo
-  _Evento(
-    titulo: 'Mes de María — inicio',
-    dia: 1,
-    mes: _FiltroMes.mayo,
-    hora: '7:00 PM',
-    lugar: 'Iglesia principal',
-    tipo: _TipoEvento.celebracion,
-    descripcion: 'Inicio del mes mariano con rosario y canto a la Virgen.',
-  ),
-  _Evento(
-    titulo: 'Retiro MOVES',
-    dia: 10,
-    mes: _FiltroMes.mayo,
-    hora: '8:00 AM — 6:00 PM',
-    lugar: 'Casa de retiros',
-    tipo: _TipoEvento.retiro,
-    descripcion: 'Jornada anual del Movimiento de la Esperanza.',
-  ),
-  _Evento(
-    titulo: 'Primera Comunión',
-    dia: 18,
-    mes: _FiltroMes.mayo,
-    hora: '10:00 AM',
-    lugar: 'Iglesia principal',
-    tipo: _TipoEvento.celebracion,
-    descripcion: 'Celebración de la Primera Eucaristía de los niños de catequesis.',
-  ),
-  _Evento(
-    titulo: 'Visita a adultos mayores',
-    dia: 24,
-    mes: _FiltroMes.mayo,
-    hora: '10:00 AM',
-    lugar: 'Domicilios del barrio',
-    tipo: _TipoEvento.servicio,
-  ),
-
-  // Junio
-  _Evento(
-    titulo: 'Corpus Christi',
-    dia: 8,
-    mes: _FiltroMes.junio,
-    hora: '9:00 AM',
-    lugar: 'Procesión por el barrio',
-    tipo: _TipoEvento.celebracion,
-    descripcion: 'Procesión eucarística con altares en las calles.',
-  ),
-  _Evento(
-    titulo: 'Confirmación',
-    dia: 14,
-    mes: _FiltroMes.junio,
-    hora: '5:00 PM',
-    lugar: 'Iglesia principal',
-    tipo: _TipoEvento.celebracion,
-    descripcion: 'Sacramento de Confirmación para los jóvenes del grupo pastoral.',
-  ),
-  _Evento(
-    titulo: 'Fiesta de San Juan Bautista',
-    dia: 24,
-    mes: _FiltroMes.junio,
-    hora: '8:00 AM y 7:00 PM',
-    lugar: 'Iglesia principal y atrio',
-    tipo: _TipoEvento.celebracion,
-    descripcion: 'Gran celebración del patrono de la capilla con misa, procesión y compartir comunitario.',
-  ),
-  _Evento(
-    titulo: 'Campana de invierno',
-    dia: 28,
-    mes: _FiltroMes.junio,
-    hora: 'Todo el día',
-    lugar: 'Puerta de la capilla',
-    tipo: _TipoEvento.servicio,
-    descripcion: 'Recolección de abrigos y frazadas para familias vulnerables.',
-  ),
+// Abreviatura del mes para la franja lateral de la card
+const _mesAbrev = [
+  '',
+  'Ene',
+  'Feb',
+  'Mar',
+  'Abr',
+  'May',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dic',
 ];
 
 // ---------------------------------------------------------------------------
@@ -328,22 +275,31 @@ class _PageHeader extends StatelessWidget {
 
 class _MesSelectorRow extends StatelessWidget {
   const _MesSelectorRow({
+    required this.meses,
     required this.seleccionado,
     required this.onChanged,
   });
 
-  final _FiltroMes seleccionado;
-  final ValueChanged<_FiltroMes> onChanged;
+  final List<String> meses; // claves "YYYY-MM"
+  final String? seleccionado;
+  final ValueChanged<String> onChanged;
+
+  static String _label(String key) {
+    final month = int.tryParse(key.split('-').last) ?? 0;
+    return _mesAbrev[month];
+  }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Row(
-      children: _FiltroMes.values.map((mes) {
-        final activo = mes == seleccionado;
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 3),
+    // Scroll horizontal por si hay muchos meses
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: meses.map((mes) {
+          final activo = mes == seleccionado;
+          return Padding(
+            padding: const EdgeInsets.only(right: 6),
             child: FilledButton(
               onPressed: () => onChanged(mes),
               style: FilledButton.styleFrom(
@@ -353,19 +309,23 @@ class _MesSelectorRow extends StatelessWidget {
                 foregroundColor: activo
                     ? colorScheme.onPrimary
                     : colorScheme.onSurfaceVariant,
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 18),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: Text(mes.label,
-                  style: TextStyle(
-                      fontWeight:
-                          activo ? FontWeight.bold : FontWeight.normal)),
+              child: Text(
+                _label(mes),
+                style: TextStyle(
+                  fontWeight:
+                      activo ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
             ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 }
@@ -387,15 +347,15 @@ class _HorariosCard extends StatelessWidget {
               children: [
                 Icon(Icons.schedule, size: 18, color: colorScheme.primary),
                 const SizedBox(width: 8),
-                Text('Horarios de misa regulares',
-                    style: textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  'Horarios de misa regulares',
+                  style: textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             const SizedBox(height: 10),
-            const _HorarioRow(dia: 'Lunes a Viernes', hora: '7:00 PM'),
-            const _HorarioRow(dia: 'Sábados', hora: '6:00 PM'),
-            const _HorarioRow(dia: 'Domingos', hora: '8:00 AM y 6:00 PM'),
+            const _HorarioRow(dia: 'Jueves y Sábado', hora: '7:00 PM'),
           ],
         ),
       ),
@@ -417,14 +377,19 @@ class _HorarioRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(dia,
-              style: TextStyle(
-                  fontSize: 13, color: colorScheme.onSurfaceVariant)),
-          Text(hora,
-              style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.primary)),
+          Text(
+            dia,
+            style:
+                TextStyle(fontSize: 13, color: colorScheme.onSurfaceVariant),
+          ),
+          Text(
+            hora,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: colorScheme.primary,
+            ),
+          ),
         ],
       ),
     );
@@ -432,10 +397,13 @@ class _HorarioRow extends StatelessWidget {
 }
 
 class _EventosSection extends StatelessWidget {
-  const _EventosSection({required this.eventos, required this.mes});
+  const _EventosSection({
+    required this.eventos,
+    required this.mesLabel,
+  });
 
-  final List<_Evento> eventos;
-  final _FiltroMes mes;
+  final List<_CalEvento> eventos;
+  final String mesLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -447,7 +415,7 @@ class _EventosSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text('Eventos de ${mes.nombre}', style: textTheme.titleLarge),
+            Text('Eventos de $mesLabel', style: textTheme.titleLarge),
             const Spacer(),
             Container(
               padding:
@@ -474,16 +442,18 @@ class _EventosSection extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 32),
               child: Text(
                 'Sin eventos registrados para este mes.',
-                style: textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant),
+                style: textTheme.bodyMedium
+                    ?.copyWith(color: colorScheme.onSurfaceVariant),
               ),
             ),
           )
         else
-          ...eventos.map((e) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _EventoCard(evento: e),
-              )),
+          ...eventos.map(
+            (e) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _EventoCard(evento: e),
+            ),
+          ),
       ],
     );
   }
@@ -492,21 +462,13 @@ class _EventosSection extends StatelessWidget {
 class _EventoCard extends StatelessWidget {
   const _EventoCard({required this.evento});
 
-  final _Evento evento;
-
-  Color _tipoColor(ColorScheme cs) => switch (evento.tipo) {
-        _TipoEvento.misa => cs.primary,
-        _TipoEvento.formacion => cs.secondary,
-        _TipoEvento.servicio => cs.tertiary,
-        _TipoEvento.celebracion => const Color(0xFF7B44C8),
-        _TipoEvento.retiro => cs.primary,
-      };
+  final _CalEvento evento;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
-    final color = _tipoColor(colorScheme);
+    final color = _categoryColor(colorScheme, evento.category);
 
     return Card(
       child: IntrinsicHeight(
@@ -526,14 +488,14 @@ class _EventoCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    '${evento.dia}',
+                    '${evento.startDate.day}',
                     style: textTheme.titleLarge?.copyWith(
                       color: color,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    evento.mes.label,
+                    _mesAbrev[evento.startDate.month],
                     style: textTheme.labelSmall?.copyWith(color: color),
                   ),
                 ],
@@ -543,8 +505,8 @@ class _EventoCard extends StatelessWidget {
             // Contenido
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: 12, horizontal: 4),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -552,25 +514,39 @@ class _EventoCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            evento.titulo,
-                            style: textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.bold),
+                            evento.title,
+                            style: textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ),
-                        _TipoBadge(tipo: evento.tipo, color: color),
+                        _CategoryBadge(
+                          category: evento.category,
+                          color: color,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     _InfoLine(
-                        icon: Icons.schedule, text: evento.hora, color: color),
-                    _InfoLine(
-                        icon: Icons.location_on_outlined,
-                        text: evento.lugar,
-                        color: color),
-                    if (evento.descripcion != null) ...[
+                      icon: Icons.schedule,
+                      text: evento.startTime,
+                      color: color,
+                    ),
+                    // Ubicación: URL → tappable, texto → normal, null → oculto
+                    if (evento.location != null)
+                      evento.hasLocationUrl
+                          ? _LocationLink(
+                              url: evento.location!,
+                              color: color,
+                            )
+                          : _InfoLine(
+                              icon: Icons.location_on_outlined,
+                              text: evento.location!,
+                              color: color,
+                            ),
+                    if (evento.description.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
-                        evento.descripcion!,
+                        evento.description,
                         style: textTheme.bodySmall?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                           height: 1.4,
@@ -589,10 +565,10 @@ class _EventoCard extends StatelessWidget {
   }
 }
 
-class _TipoBadge extends StatelessWidget {
-  const _TipoBadge({required this.tipo, required this.color});
+class _CategoryBadge extends StatelessWidget {
+  const _CategoryBadge({required this.category, required this.color});
 
-  final _TipoEvento tipo;
+  final String category;
   final Color color;
 
   @override
@@ -606,12 +582,15 @@ class _TipoBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(tipo.icono, size: 11, color: color),
+          Icon(_categoryIcon(category), size: 11, color: color),
           const SizedBox(width: 3),
           Text(
-            tipo.label,
+            category,
             style: TextStyle(
-                fontSize: 10, fontWeight: FontWeight.w700, color: color),
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
           ),
         ],
       ),
@@ -620,8 +599,11 @@ class _TipoBadge extends StatelessWidget {
 }
 
 class _InfoLine extends StatelessWidget {
-  const _InfoLine(
-      {required this.icon, required this.text, required this.color});
+  const _InfoLine({
+    required this.icon,
+    required this.text,
+    required this.color,
+  });
 
   final IconData icon;
   final String text;
@@ -639,11 +621,53 @@ class _InfoLine extends StatelessWidget {
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    color:
+                        Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Muestra "Ver ubicación" como enlace tappable cuando la ubicación es una URL.
+class _LocationLink extends StatelessWidget {
+  const _LocationLink({required this.url, required this.color});
+
+  final String url;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: InkWell(
+        onTap: () async {
+          final uri = Uri.parse(url);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+          }
+        },
+        borderRadius: BorderRadius.circular(4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.location_on_outlined, size: 13, color: color),
+            const SizedBox(width: 4),
+            Text(
+              'Ver ubicación',
+              style: TextStyle(
+                fontSize: 12,
+                color: color,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.underline,
+                decorationColor: color,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

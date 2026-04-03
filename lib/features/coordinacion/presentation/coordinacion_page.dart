@@ -1,100 +1,177 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
-class CoordinacionPage extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+
+class CoordinacionPage extends StatefulWidget {
   const CoordinacionPage({super.key});
 
   @override
+  State<CoordinacionPage> createState() => _CoordinacionPageState();
+}
+
+class _CoordinacionPageState extends State<CoordinacionPage> {
+  late final Future<_CoordinacionData> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  static Future<_CoordinacionData> _load() async {
+    final raw = await rootBundle.loadString('assets/data/coordinacion.json');
+    return _CoordinacionData.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      key: const ValueKey('coordinacion_page'),
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          _PageHeader(),
-          SizedBox(height: 24),
-          _ConsejoPrincipal(),
-          SizedBox(height: 28),
-          _Divider(label: 'Información de contacto'),
-          SizedBox(height: 16),
-          _ContactoCard(),
-          SizedBox(height: 28),
-          _Divider(label: 'Horarios de atención'),
-          SizedBox(height: 16),
-          _HorariosCard(),
-        ],
-      ),
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return FutureBuilder<_CoordinacionData>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Center(
+            child: LoadingAnimationWidget.beat(
+              color: colorScheme.primary,
+              size: 48,
+            ),
+          );
+        }
+        if (snapshot.hasError || snapshot.data == null) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.cloud_off_outlined,
+                    size: 48,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                const SizedBox(height: 12),
+                Text('No se pudo cargar la información.',
+                    style: TextStyle(color: colorScheme.onSurfaceVariant)),
+              ],
+            ),
+          );
+        }
+
+        final data = snapshot.data!;
+        return SingleChildScrollView(
+          key: const ValueKey('coordinacion_page'),
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _PageHeader(),
+              const SizedBox(height: 24),
+              _ConsejoPrincipal(consejo: data.consejo),
+              const SizedBox(height: 28),
+              _Divider(label: 'Información de contacto'),
+              const SizedBox(height: 16),
+              _ContactoCard(contacto: data.contacto),
+              const SizedBox(height: 28),
+              _Divider(label: 'Horarios de atención'),
+              const SizedBox(height: 16),
+              _HorariosCard(
+                horarios: data.horariosAtencion,
+                reunionConsejo: data.reunionConsejo,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Datos
+// Modelos
 // ---------------------------------------------------------------------------
 
-class _MiembroData {
-  const _MiembroData({
+class _Miembro {
+  const _Miembro({
     required this.nombre,
     required this.rol,
-    required this.responsabilidades,
-    required this.icono,
     required this.orden,
+    required this.responsabilidades,
+    this.imagen,
   });
 
   final String nombre;
   final String rol;
+  final int orden;
   final List<String> responsabilidades;
-  final IconData icono;
-  final int orden; // 1 = principal, 2 = secundario
+  final String? imagen;
+
+  factory _Miembro.fromJson(Map<String, dynamic> json) => _Miembro(
+        nombre: json['nombre'] as String,
+        rol: json['rol'] as String,
+        orden: json['orden'] as int,
+        responsabilidades: (json['responsabilidades'] as List<dynamic>)
+            .map((e) => e as String)
+            .toList(),
+        imagen: json['imagen'] as String?,
+      );
 }
 
-const _consejo = <_MiembroData>[
-  _MiembroData(
-    nombre: 'Sr. Roberto Quispe',
-    rol: 'Coordinador',
-    responsabilidades: [
-      'Presidir las reuniones del consejo',
-      'Representar a la capilla ante la parroquia',
-      'Coordinar las dimensiones pastorales',
-      'Convocar asambleas comunitarias',
-    ],
-    icono: Icons.person,
-    orden: 1,
-  ),
-  _MiembroData(
-    nombre: 'Sra. Patricia Flores',
-    rol: 'Subcoordinadora',
-    responsabilidades: [
-      'Apoyar y reemplazar al coordinador',
-      'Supervisar los grupos pastorales',
-      'Gestionar el calendario de actividades',
-    ],
-    icono: Icons.person,
-    orden: 1,
-  ),
-  _MiembroData(
-    nombre: 'Srta. Carmen López',
-    rol: 'Secretaria',
-    responsabilidades: [
-      'Redactar actas de reuniones',
-      'Gestionar comunicaciones oficiales',
-      'Archivar documentos del consejo',
-    ],
-    icono: Icons.person,
-    orden: 2,
-  ),
-  _MiembroData(
-    nombre: 'Sra. María Condori',
-    rol: 'Tesorera',
-    responsabilidades: [
-      'Administrar los fondos de la capilla',
-      'Rendir cuentas en asamblea',
-      'Gestionar ingresos y egresos',
-    ],
-    icono: Icons.person,
-    orden: 2,
-  ),
-];
+class _Contacto {
+  const _Contacto({
+    required this.telefono,
+    required this.correo,
+    required this.direccion,
+  });
+
+  final String telefono;
+  final String correo;
+  final String direccion;
+
+  factory _Contacto.fromJson(Map<String, dynamic> json) => _Contacto(
+        telefono: json['telefono'] as String,
+        correo: json['correo'] as String,
+        direccion: json['direccion'] as String,
+      );
+}
+
+class _Horario {
+  const _Horario({required this.dia, required this.horario});
+
+  final String dia;
+  final String horario;
+
+  factory _Horario.fromJson(Map<String, dynamic> json) => _Horario(
+        dia: json['dia'] as String,
+        horario: json['horario'] as String,
+      );
+}
+
+class _CoordinacionData {
+  const _CoordinacionData({
+    required this.consejo,
+    required this.contacto,
+    required this.horariosAtencion,
+    required this.reunionConsejo,
+  });
+
+  final List<_Miembro> consejo;
+  final _Contacto contacto;
+  final List<_Horario> horariosAtencion;
+  final String reunionConsejo;
+
+  factory _CoordinacionData.fromJson(Map<String, dynamic> json) =>
+      _CoordinacionData(
+        consejo: (json['consejo'] as List<dynamic>)
+            .map((e) => _Miembro.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        contacto:
+            _Contacto.fromJson(json['contacto'] as Map<String, dynamic>),
+        horariosAtencion: (json['horarios_atencion'] as List<dynamic>)
+            .map((e) => _Horario.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        reunionConsejo: json['reunion_consejo'] as String,
+      );
+}
 
 // ---------------------------------------------------------------------------
 // Widgets
@@ -126,40 +203,29 @@ class _PageHeader extends StatelessWidget {
 }
 
 class _ConsejoPrincipal extends StatelessWidget {
-  const _ConsejoPrincipal();
+  const _ConsejoPrincipal({required this.consejo});
+
+  final List<_Miembro> consejo;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-
-    // Separar principales (orden 1) de secundarios (orden 2)
-    final principales = _consejo.where((m) => m.orden == 1).toList();
-    final secundarios = _consejo.where((m) => m.orden == 2).toList();
+    final principales = consejo.where((m) => m.orden == 1).toList();
+    final secundarios = consejo.where((m) => m.orden == 2).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Consejo de Coordinación', style: textTheme.titleLarge),
         const SizedBox(height: 14),
-        // Coordinador y Subcoordinador en fila
-        Row(
-          children: [
-            for (final m in principales) ...[
-              Expanded(child: _MiembroCard(miembro: m, destacado: true)),
-              if (m != principales.last) const SizedBox(width: 12),
-            ],
-          ],
-        ),
-        const SizedBox(height: 12),
-        // Secretaria y Tesorera en fila
-        Row(
-          children: [
-            for (final m in secundarios) ...[
-              Expanded(child: _MiembroCard(miembro: m, destacado: false)),
-              if (m != secundarios.last) const SizedBox(width: 12),
-            ],
-          ],
-        ),
+        for (final m in principales) ...[
+          _MiembroCard(miembro: m, destacado: true),
+          const SizedBox(height: 12),
+        ],
+        for (final m in secundarios) ...[
+          _MiembroCard(miembro: m, destacado: false),
+          const SizedBox(height: 12),
+        ],
       ],
     );
   }
@@ -168,7 +234,7 @@ class _ConsejoPrincipal extends StatelessWidget {
 class _MiembroCard extends StatelessWidget {
   const _MiembroCard({required this.miembro, required this.destacado});
 
-  final _MiembroData miembro;
+  final _Miembro miembro;
   final bool destacado;
 
   @override
@@ -176,64 +242,73 @@ class _MiembroCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
 
-    final bgColor =
-        destacado ? colorScheme.primaryContainer : colorScheme.surfaceContainerHighest;
-    final fgColor =
-        destacado ? colorScheme.onPrimaryContainer : colorScheme.onSurface;
     final accentColor = destacado ? colorScheme.primary : colorScheme.outline;
+    final headerBg = destacado
+        ? colorScheme.primaryContainer
+        : colorScheme.surfaceContainerHighest;
+    final headerFg = destacado
+        ? colorScheme.onPrimaryContainer
+        : colorScheme.onSurface;
 
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Avatar + rol
+          // Header
           Container(
-            color: bgColor,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
+            color: headerBg,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
               children: [
                 CircleAvatar(
-                  radius: 30,
+                  radius: 24,
                   backgroundColor: accentColor.withValues(alpha: 0.18),
-                  child: Icon(Icons.person, size: 32, color: accentColor),
+                  backgroundImage: miembro.imagen != null
+                      ? AssetImage(miembro.imagen!)
+                      : null,
+                  child: miembro.imagen == null
+                      ? Icon(Icons.person, size: 26, color: accentColor)
+                      : null,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  miembro.rol,
-                  style: textTheme.labelSmall?.copyWith(
-                    color: fgColor.withValues(alpha: 0.7),
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6,
-                  ),
-                  textAlign: TextAlign.center,
+                const SizedBox(width: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      miembro.nombre,
+                      style: textTheme.titleSmall?.copyWith(
+                        color: headerFg,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      miembro.rol,
+                      style: textTheme.labelSmall?.copyWith(
+                        color: accentColor,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          // Nombre y responsabilidades
+          // Body
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  miembro.nombre,
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
                 ...miembro.responsabilidades.map(
                   (r) => Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.arrow_right,
-                            size: 16, color: accentColor),
+                        Icon(Icons.arrow_right, size: 16, color: accentColor),
                         const SizedBox(width: 2),
                         Expanded(
                           child: Text(
@@ -258,7 +333,9 @@ class _MiembroCard extends StatelessWidget {
 }
 
 class _ContactoCard extends StatelessWidget {
-  const _ContactoCard();
+  const _ContactoCard({required this.contacto});
+
+  final _Contacto contacto;
 
   @override
   Widget build(BuildContext context) {
@@ -269,21 +346,21 @@ class _ContactoCard extends StatelessWidget {
           _ContactoTile(
             icon: Icons.phone_outlined,
             label: 'Teléfono',
-            valor: '+51 999 000 111',
+            valor: contacto.telefono,
             color: colorScheme.primary,
           ),
           Divider(height: 1, color: colorScheme.outlineVariant),
           _ContactoTile(
             icon: Icons.email_outlined,
             label: 'Correo',
-            valor: 'coordinacion@capillasanjuanbautista.pe',
+            valor: contacto.correo,
             color: colorScheme.primary,
           ),
           Divider(height: 1, color: colorScheme.outlineVariant),
           _ContactoTile(
             icon: Icons.location_on_outlined,
             label: 'Dirección',
-            valor: 'Jr. Principal 123, San Juan Bautista',
+            valor: contacto.direccion,
             color: colorScheme.primary,
           ),
         ],
@@ -321,7 +398,13 @@ class _ContactoTile extends StatelessWidget {
 }
 
 class _HorariosCard extends StatelessWidget {
-  const _HorariosCard();
+  const _HorariosCard({
+    required this.horarios,
+    required this.reunionConsejo,
+  });
+
+  final List<_Horario> horarios;
+  final String reunionConsejo;
 
   @override
   Widget build(BuildContext context) {
@@ -329,30 +412,26 @@ class _HorariosCard extends StatelessWidget {
     return Card(
       child: Column(
         children: [
-          _HorarioTile(
-            dia: 'Lunes y Miércoles',
-            horario: '6:00 PM — 8:00 PM',
-            color: colorScheme.primary,
-          ),
-          Divider(height: 1, color: colorScheme.outlineVariant),
-          _HorarioTile(
-            dia: 'Sábados',
-            horario: '9:00 AM — 12:00 PM',
-            color: colorScheme.primary,
-          ),
+          for (int i = 0; i < horarios.length; i++) ...[
+            if (i > 0) Divider(height: 1, color: colorScheme.outlineVariant),
+            _HorarioTile(
+              dia: horarios[i].dia,
+              horario: horarios[i].horario,
+              color: colorScheme.primary,
+            ),
+          ],
           Divider(height: 1, color: colorScheme.outlineVariant),
           ListTile(
             leading: CircleAvatar(
               radius: 18,
-              backgroundColor:
-                  colorScheme.tertiary.withValues(alpha: 0.12),
+              backgroundColor: colorScheme.tertiary.withValues(alpha: 0.12),
               child: Icon(Icons.info_outline,
                   size: 18, color: colorScheme.tertiary),
             ),
             title: const Text('Reuniones del consejo',
                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-            subtitle:
-                const Text('Primer sábado de cada mes — Salón parroquial'),
+            subtitle: Text(reunionConsejo,
+                style: const TextStyle(fontSize: 13)),
           ),
         ],
       ),
