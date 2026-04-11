@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:capilla_san_juan_bautista/core/config/app_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AdoracionCapillitaPage extends StatefulWidget {
@@ -254,8 +255,8 @@ class _FooterCTA extends StatelessWidget {
   final ColorScheme colorScheme;
   final TextTheme textTheme;
 
-  static const _whatsappUrl =
-      'https://wa.me/51945212352?text=Hola%2C%20quiero%20dejar%20una%20petici%C3%B3n%20para%20la%20Adoraci%C3%B3n%20al%20Sant%C3%ADsimo%20%F0%9F%99%8F';
+  static final _whatsappUrl =
+      'https://wa.me/${AppConfig.petitionsPhone}?text=Hola%2C%20quiero%20dejar%20una%20petici%C3%B3n%20para%20la%20Adoraci%C3%B3n%20al%20Sant%C3%ADsimo%20%F0%9F%99%8F';
 
   @override
   Widget build(BuildContext context) {

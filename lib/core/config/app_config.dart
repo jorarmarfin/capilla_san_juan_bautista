@@ -10,4 +10,7 @@ abstract final class AppConfig {
 
   /// Versión visible de la app. Mantener sincronizado con pubspec.yaml.
   static const String appVersion = 'v1.0.5';
+
+  /// WhatsApp phone number for prayer requests and intentions (Peru +51).
+  static const String petitionsPhone = '51945212352';
 }
