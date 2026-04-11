@@ -9,5 +9,5 @@ abstract final class AppConfig {
   static const String storageUrl = 'https://aegis.hefesto2js.com/storage';
 
   /// Versión visible de la app. Mantener sincronizado con pubspec.yaml.
-  static const String appVersion = 'v1.0.3';
+  static const String appVersion = 'v1.0.5';
 }

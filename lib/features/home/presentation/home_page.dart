@@ -4,6 +4,9 @@ import 'dart:math';
 
 import 'package:capilla_san_juan_bautista/core/config/app_config.dart';
 import 'package:capilla_san_juan_bautista/features/home/presentation/home_shell.dart';
+import 'package:capilla_san_juan_bautista/features/horarios/presentation/adoracion_capillita_page.dart';
+import 'package:capilla_san_juan_bautista/features/horarios/presentation/capilla_central_page.dart';
+import 'package:capilla_san_juan_bautista/features/horarios/presentation/misa_capillita_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -321,14 +324,43 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
           const SizedBox(height: 18),
-          Text('Horarios de misa', style: textTheme.titleLarge),
+          Text('Horarios', style: textTheme.titleLarge),
           const SizedBox(height: 10),
           Card(
             child: Column(
-              children: const [
-                _ScheduleTile(day: 'Jueves', time: '7:00 PM'),
-                Divider(height: 1),
-                _ScheduleTile(day: 'Sábado', time: '7:00 PM'),
+              children: [
+                _ScheduleTile(
+                  day: 'Misa Jueves',
+                  time: '7:00 PM',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MisaCapillitaPage(),
+                    ),
+                  ),
+                ),
+                const Divider(height: 1),
+                _ScheduleTile(
+                  day: 'Misa Sábado',
+                  time: '7:00 PM',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CapillaCentralPage(),
+                    ),
+                  ),
+                ),
+                const Divider(height: 1),
+                _ScheduleTile(
+                  day: 'Adoración Santísimo Jueves',
+                  time: '6:00 PM',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AdoracionCapillitaPage(),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -625,17 +657,30 @@ class _QuickActionTile extends StatelessWidget {
 }
 
 class _ScheduleTile extends StatelessWidget {
-  const _ScheduleTile({required this.day, required this.time});
+  const _ScheduleTile({
+    required this.day,
+    required this.time,
+    required this.onTap,
+  });
 
   final String day;
   final String time;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       leading: const Icon(Icons.access_time),
       title: Text(day),
-      trailing: Text(time, style: const TextStyle(fontWeight: FontWeight.w700)),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(time, style: const TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(width: 4),
+          const Icon(Icons.chevron_right, size: 18),
+        ],
+      ),
+      onTap: onTap,
     );
   }
 }

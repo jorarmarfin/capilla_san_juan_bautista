@@ -1,0 +1,27 @@
+[
+  {
+    "titulo": "⛪ Santa Misa – Capilla Central",
+    "cuerpo": "En este espacio que nos reúne a todos, Dios nos convoca como una sola familia.\nAquí celebramos juntos el amor que nos une.",
+    "imagen": "assets/patio/patio1.jpeg"
+  },
+  {
+    "titulo": "🌿 Un pueblo reunido",
+    "cuerpo": "No vienes solo… caminamos juntos como Iglesia.\nCada Misa es un encuentro vivo con Dios y con nuestros hermanos.",
+    "imagen": "assets/patio/patio2.jpeg"
+  },
+  {
+    "titulo": "🕊️ Celebraciones que marcan el corazón",
+    "cuerpo": "En este lugar vivimos momentos especiales como la Semana Santa,\ndonde la fe se hace más intensa y profunda.",
+    "imagen": "assets/patio/patio3.jpeg"
+  },
+  {
+    "titulo": "🔥 Un espacio para todos",
+    "cuerpo": "Amplio para acogernos, pero lleno de la misma presencia de Dios.\nAquí siempre hay un lugar para ti.",
+    "imagen": "assets/patio/patio1.jpeg"
+  },
+  {
+    "titulo": "💛 Ven y sé parte",
+    "cuerpo": "No te quedes fuera de este encuentro de fe.\nDios te llama a vivir la Eucaristía en comunidad.",
+    "imagen": "assets/patio/patio2.jpeg"
+  }
+]

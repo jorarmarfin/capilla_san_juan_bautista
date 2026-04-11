@@ -1,0 +1,22 @@
+[
+  {
+    "titulo": "✨ Adoración al Santísimo",
+    "cuerpo": "Jesús está realmente presente y te espera en silencio.\nNo vienes a un lugar… vienes a encontrarte con Él. 🙏",
+    "imagen": "assets/adoracion/adoracion1.jpeg"
+  },
+  {
+    "titulo": "🌿 Un momento para el alma",
+    "cuerpo": "Deja el ruido, las preocupaciones y las prisas.\nAquí tu corazón puede descansar en Aquel que todo lo puede.",
+    "imagen": "assets/adoracion/adoracion2.jpeg"
+  },
+  {
+    "titulo": "💛 No necesitas saber orar",
+    "cuerpo": "Basta con estar, mirar y dejarte mirar por Jesús.\nÉl entiende incluso lo que no sabes decir.",
+    "imagen": "assets/adoracion/adoracion3.jpeg"
+  },
+  {
+    "titulo": "🔥 Una visita que transforma",
+    "cuerpo": "Un instante con el Señor puede cambiar tu día…\ny poco a poco, toda tu vida. No lo dejes esperando.",
+    "imagen": "assets/adoracion/adoracion4.jpeg"
+  }
+]

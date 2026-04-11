@@ -1,0 +1,27 @@
+[
+  {
+    "titulo": "⛪ Santa Misa",
+    "cuerpo": "En nuestra pequeña capillita, Dios se hace cercano.\nAquí, el cielo toca la tierra en cada Eucaristía.",
+    "imagen": "assets/capillita/capillita1.jpeg"
+  },
+  {
+    "titulo": "🕊️ Un encuentro verdadero",
+    "cuerpo": "No es solo una celebración… es Jesús que se entrega por ti.\nVen a vivir un encuentro que da sentido a todo.",
+    "imagen": "assets/capillita/capillita2.jpeg"
+  },
+  {
+    "titulo": "🍞 Alimento para el alma",
+    "cuerpo": "En cada Misa, recibimos al Señor que fortalece, sana y renueva.\nTu corazón necesita este encuentro más de lo que imaginas.",
+    "imagen": "assets/capillita/capillita3.jpeg"
+  },
+  {
+    "titulo": "🤍 Eres bienvenido",
+    "cuerpo": "No importa cómo llegues, Dios te recibe con amor.\nEsta es tu casa, este es tu lugar.",
+    "imagen": "assets/capillita/capillita4.jpeg"
+  },
+  {
+    "titulo": "🔥 No faltes a la cita",
+    "cuerpo": "Jesús te espera en cada Misa con los brazos abiertos.\nVen y déjate transformar por su amor.",
+    "imagen": "assets/capillita/capillita1.jpeg"
+  }
+]
