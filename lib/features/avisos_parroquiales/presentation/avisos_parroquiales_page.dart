@@ -4,6 +4,7 @@ import 'package:capilla_san_juan_bautista/core/config/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AvisosParroquialesPage extends StatefulWidget {
   const AvisosParroquialesPage({super.key});
@@ -120,19 +121,30 @@ class _Notice {
     required this.content,
     required this.author,
     required this.publishedAt,
+    this.filePath,
+    this.fileType,
   });
 
   final String title;
   final String content;
   final String author;
   final String publishedAt;
+  final String? filePath;
+  final String? fileType;
 
-  factory _Notice.fromJson(Map<String, dynamic> json) => _Notice(
-        title: json['title'] as String,
-        content: json['content'] as String,
-        author: json['author'] as String,
-        publishedAt: _formatDate(json['published_at'] as String),
-      );
+  factory _Notice.fromJson(Map<String, dynamic> json) {
+    final rawPath = json['file_path'] as String?;
+    return _Notice(
+      title: json['title'] as String,
+      content: json['content'] as String,
+      author: json['author'] as String,
+      publishedAt: _formatDate(json['published_at'] as String),
+      filePath: rawPath != null
+          ? '${AppConfig.storageUrl}/$rawPath'
+          : null,
+      fileType: json['file_type'] as String?,
+    );
+  }
 
   static String _formatDate(String iso) {
     try {
@@ -216,8 +228,151 @@ class _NoticeCard extends StatelessWidget {
                 ),
               ],
             ),
+            if (notice.filePath != null) ...[
+              const SizedBox(height: 12),
+              _NoticeFileButton(
+                filePath: notice.filePath!,
+                fileType: notice.fileType,
+              ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Botón de adjunto (imagen o documento)
+// ---------------------------------------------------------------------------
+
+class _NoticeFileButton extends StatelessWidget {
+  const _NoticeFileButton({
+    required this.filePath,
+    required this.fileType,
+  });
+
+  final String filePath;
+  final String? fileType;
+
+  bool get _isImage => fileType == 'imagen';
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: OutlinedButton.icon(
+        icon: Icon(
+          _isImage ? Icons.image_outlined : Icons.download_outlined,
+          size: 16,
+        ),
+        label: Text(_isImage ? 'Ver imagen' : 'Descargar documento'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor:
+              _isImage ? colorScheme.primary : colorScheme.secondary,
+          side: BorderSide(
+            color: _isImage
+                ? colorScheme.primary.withValues(alpha: 0.4)
+                : colorScheme.secondary.withValues(alpha: 0.4),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          textStyle: const TextStyle(fontSize: 13),
+        ),
+        onPressed: () => _isImage
+            ? _showImage(context)
+            : _openDocument(context),
+      ),
+    );
+  }
+
+  void _showImage(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => _ImageDialog(imageUrl: filePath),
+    );
+  }
+
+  Future<void> _openDocument(BuildContext context) async {
+    final uri = Uri.parse(filePath);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se pudo abrir el documento.'),
+          ),
+        );
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Diálogo para mostrar imagen
+// ---------------------------------------------------------------------------
+
+class _ImageDialog extends StatelessWidget {
+  const _ImageDialog({required this.imageUrl});
+
+  final String imageUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: Stack(
+        alignment: Alignment.topRight,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: InteractiveViewer(
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    color: Colors.black54,
+                    width: double.infinity,
+                    height: 260,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                        color: Colors.white,
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.black54,
+                  width: double.infinity,
+                  height: 200,
+                  child: const Center(
+                    child: Icon(Icons.broken_image_outlined,
+                        color: Colors.white54, size: 48),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.black54,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.close, color: Colors.white, size: 16),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

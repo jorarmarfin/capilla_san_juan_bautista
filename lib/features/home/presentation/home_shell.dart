@@ -80,12 +80,27 @@ class _HomeShellState extends State<HomeShell> {
   Future<void> _checkForUpdate() async {
     try {
       final info = await InAppUpdate.checkForUpdate();
-      if (info.updateAvailability == UpdateAvailability.updateAvailable) {
-        await InAppUpdate.performImmediateUpdate();
+      if (!mounted) return;
+
+      if (info.updateAvailability == UpdateAvailability.updateAvailable &&
+          info.immediateUpdateAllowed) {
+        final result = await InAppUpdate.performImmediateUpdate();
+        if (!mounted) return;
+
+        // Si el update falla, reintentamos al volver al foco
+        if (result != AppUpdateResult.success) {
+          _scheduleUpdateRetry();
+        }
       }
     } catch (_) {
       // Silencioso: si falla (no Play Store, emulador, etc.) la app continúa normal
     }
+  }
+
+  void _scheduleUpdateRetry() {
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) _checkForUpdate();
+    });
   }
 
   Widget _buildSection() {

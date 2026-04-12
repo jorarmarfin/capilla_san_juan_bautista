@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:capilla_san_juan_bautista/core/config/app_config.dart';
@@ -5,6 +6,16 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+// ---------------------------------------------------------------------------
+// Enum de modo de búsqueda
+// ---------------------------------------------------------------------------
+
+enum _SearchMode { texto, fecha }
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 class CalendarioPage extends StatefulWidget {
   const CalendarioPage({super.key});
@@ -14,34 +25,110 @@ class CalendarioPage extends StatefulWidget {
 }
 
 class _CalendarioPageState extends State<CalendarioPage> {
-  late final Future<List<_CalEvento>> _future;
-  String? _mesFiltro; // clave "YYYY-MM"
+  Future<List<_CalEvento>>? _allEventsFuture;
+  String? _mesFiltro;
+
+  // Búsqueda
+  _SearchMode _searchMode = _SearchMode.texto;
+  final _textController = TextEditingController();
+  DateTime? _selectedDate;
+  Future<List<_CalEvento>>? _searchFuture;
+  String? _activeQuery; // null = sin búsqueda activa
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    _future = _fetchEventos();
+    _allEventsFuture = _fetchAllEvents();
   }
 
-  static Future<List<_CalEvento>> _fetchEventos() async {
+  @override
+  void dispose() {
+    _textController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  // ---- API calls ----
+
+  static Future<List<_CalEvento>> _fetchAllEvents() async {
     final uri = Uri.parse(
       '${AppConfig.baseUrl}/projects/${AppConfig.projectUuid}/events',
     );
     final response = await http.get(uri);
-    if (response.statusCode != 200) {
-      throw Exception('Error ${response.statusCode}');
-    }
+    if (response.statusCode != 200) throw Exception('Error ${response.statusCode}');
     final data = jsonDecode(response.body) as Map<String, dynamic>;
     return (data['events'] as List<dynamic>)
         .map((e) => _CalEvento.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
-  // "YYYY-MM" desde un DateTime
+  static Future<List<_CalEvento>> _fetchSearch(String q) async {
+    final uri = Uri.parse(
+      '${AppConfig.baseUrl}/projects/${AppConfig.projectUuid}/events/search',
+    ).replace(queryParameters: {'q': q});
+    final response = await http.get(uri);
+    if (response.statusCode != 200) throw Exception('Error ${response.statusCode}');
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return (data['events'] as List<dynamic>)
+        .map((e) => _CalEvento.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  // ---- Handlers de búsqueda ----
+
+  void _onTextChanged(String value) {
+    _debounce?.cancel();
+    if (value.trim().isEmpty) {
+      _clearSearch();
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _triggerSearch(value.trim());
+    });
+  }
+
+  void _onModeChanged(_SearchMode mode) {
+    _clearSearch();
+    setState(() => _searchMode = mode);
+  }
+
+  void _triggerSearch(String q) {
+    setState(() {
+      _activeQuery = q;
+      _searchFuture = _fetchSearch(q);
+    });
+  }
+
+  void _clearSearch() {
+    _debounce?.cancel();
+    _textController.clear();
+    setState(() {
+      _activeQuery = null;
+      _searchFuture = null;
+      _selectedDate = null;
+    });
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+    );
+    if (!mounted || picked == null) return;
+    final q =
+        '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+    setState(() => _selectedDate = picked);
+    _triggerSearch(q);
+  }
+
+  // ---- Month helpers ----
+
   static String _mesKey(DateTime dt) =>
       '${dt.year}-${dt.month.toString().padLeft(2, '0')}';
 
-  // Nombre completo del mes, incluye año solo si difiere del actual
   static String _mesNombre(String key) {
     const nombres = [
       '',
@@ -66,14 +153,39 @@ class _CalendarioPageState extends State<CalendarioPage> {
     return year == currentYear ? nombres[month] : '${nombres[month]} $year';
   }
 
+  // ---- Build ----
+
   @override
   Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _SearchSection(
+          mode: _searchMode,
+          textController: _textController,
+          selectedDate: _selectedDate,
+          isSearching: _activeQuery != null,
+          onModeChanged: _onModeChanged,
+          onTextChanged: _onTextChanged,
+          onPickDate: _pickDate,
+          onClear: _clearSearch,
+        ),
+        Expanded(
+          child: _activeQuery != null
+              ? _buildSearchView()
+              : _buildAllEventsView(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAllEventsView() {
     final colorScheme = Theme.of(context).colorScheme;
 
     return FutureBuilder<List<_CalEvento>>(
-      future: _future,
+      future: _allEventsFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
+        if (_allEventsFuture == null ||
+            snapshot.connectionState != ConnectionState.done) {
           return Center(
             child: LoadingAnimationWidget.beat(
               color: colorScheme.primary,
@@ -81,42 +193,20 @@ class _CalendarioPageState extends State<CalendarioPage> {
             ),
           );
         }
-
         if (snapshot.hasError || snapshot.data == null) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.cloud_off_outlined,
-                  size: 48,
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'No se pudieron cargar los eventos.',
-                  style: TextStyle(color: colorScheme.onSurfaceVariant),
-                ),
-              ],
-            ),
-          );
+          return _ErrorView(colorScheme: colorScheme);
         }
 
         final todos = snapshot.data!;
-
-        // Meses únicos presentes en los eventos, ordenados
         final meses = todos
             .map((e) => _mesKey(e.startDate))
             .toSet()
             .toList()
           ..sort();
-
-        // Filtro activo: el guardado en estado (si sigue vigente) o el primero
         final filtroActivo =
             _mesFiltro != null && meses.contains(_mesFiltro)
                 ? _mesFiltro!
                 : (meses.isNotEmpty ? meses.first : null);
-
         final filtrados = filtroActivo != null
             ? (todos
                 .where((e) => _mesKey(e.startDate) == filtroActivo)
@@ -127,7 +217,7 @@ class _CalendarioPageState extends State<CalendarioPage> {
 
         return SingleChildScrollView(
           key: const ValueKey('calendario_page'),
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -155,6 +245,325 @@ class _CalendarioPageState extends State<CalendarioPage> {
       },
     );
   }
+
+  Widget _buildSearchView() {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return FutureBuilder<List<_CalEvento>>(
+      future: _searchFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Center(
+            child: LoadingAnimationWidget.beat(
+              color: colorScheme.primary,
+              size: 48,
+            ),
+          );
+        }
+        if (snapshot.hasError || snapshot.data == null) {
+          return _ErrorView(
+            colorScheme: colorScheme,
+            message: 'No se pudo completar la búsqueda.',
+          );
+        }
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          child: _SearchResultsSection(
+            results: snapshot.data!,
+            query: _activeQuery!,
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Barra de búsqueda fija
+// ---------------------------------------------------------------------------
+
+class _SearchSection extends StatelessWidget {
+  const _SearchSection({
+    required this.mode,
+    required this.textController,
+    required this.selectedDate,
+    required this.isSearching,
+    required this.onModeChanged,
+    required this.onTextChanged,
+    required this.onPickDate,
+    required this.onClear,
+  });
+
+  final _SearchMode mode;
+  final TextEditingController textController;
+  final DateTime? selectedDate;
+  final bool isSearching;
+  final ValueChanged<_SearchMode> onModeChanged;
+  final ValueChanged<String> onTextChanged;
+  final VoidCallback onPickDate;
+  final VoidCallback onClear;
+
+  static String _formatDate(DateTime dt) {
+    const meses = [
+      '',
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
+    ];
+    return '${dt.day} ${meses[dt.month]} ${dt.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        border: Border(
+          bottom: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Toggle modo
+          SegmentedButton<_SearchMode>(
+            segments: const [
+              ButtonSegment(
+                value: _SearchMode.texto,
+                label: Text('Título / contenido'),
+                icon: Icon(Icons.search, size: 16),
+              ),
+              ButtonSegment(
+                value: _SearchMode.fecha,
+                label: Text('Fecha'),
+                icon: Icon(Icons.calendar_today_outlined, size: 16),
+              ),
+            ],
+            selected: {mode},
+            onSelectionChanged: (v) => onModeChanged(v.first),
+            style: SegmentedButton.styleFrom(
+              textStyle: textTheme.labelSmall,
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Input según modo
+          if (mode == _SearchMode.texto)
+            TextField(
+              controller: textController,
+              onChanged: onTextChanged,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Buscar por título o descripción...',
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: isSearching
+                    ? IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        tooltip: 'Limpiar búsqueda',
+                        onPressed: onClear,
+                      )
+                    : null,
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                isDense: true,
+                filled: true,
+                fillColor:
+                    colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.calendar_today_outlined, size: 16),
+                    label: Text(
+                      selectedDate != null
+                          ? _formatDate(selectedDate!)
+                          : 'Seleccionar fecha',
+                      style: TextStyle(
+                        color: selectedDate != null
+                            ? colorScheme.onSurface
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    onPressed: onPickDate,
+                    style: OutlinedButton.styleFrom(
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 14),
+                    ),
+                  ),
+                ),
+                if (isSearching) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: onClear,
+                    tooltip: 'Limpiar búsqueda',
+                  ),
+                ],
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Resultados de búsqueda
+// ---------------------------------------------------------------------------
+
+class _SearchResultsSection extends StatelessWidget {
+  const _SearchResultsSection({
+    required this.results,
+    required this.query,
+  });
+
+  final List<_CalEvento> results;
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  text: 'Resultados para ',
+                  style: textTheme.titleMedium,
+                  children: [
+                    TextSpan(
+                      text: '"$query"',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${results.length} ${results.length == 1 ? 'resultado' : 'resultados'}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onPrimaryContainer,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        if (results.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 48),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.search_off_outlined,
+                    size: 48,
+                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Sin resultados para esta búsqueda.',
+                    style: textTheme.bodyMedium
+                        ?.copyWith(color: colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...results.map(
+            (e) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _EventoCard(evento: e),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Vista de error reutilizable
+// ---------------------------------------------------------------------------
+
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.colorScheme, this.message});
+
+  final ColorScheme colorScheme;
+  final String? message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.cloud_off_outlined,
+            size: 48,
+            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message ?? 'No se pudieron cargar los eventos.',
+            style: TextStyle(color: colorScheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -177,8 +586,8 @@ class _CalEvento {
   final String description;
   final String category;
   final DateTime startDate;
-  final String startTime; // "HH:MM" para mostrar
-  final String? location; // URL de Google Maps, texto plano, o null
+  final String startTime;
+  final String? location;
 
   bool get hasLocationUrl =>
       location != null && location!.startsWith('http');
@@ -197,7 +606,6 @@ class _CalEvento {
     );
   }
 
-  // "HH:MM:SS" → "HH:MM"
   static String _fmtTime(String raw) =>
       raw.length >= 5 ? raw.substring(0, 5) : raw;
 }
@@ -228,7 +636,6 @@ IconData _categoryIcon(String category) {
   };
 }
 
-// Abreviatura del mes para la franja lateral de la card
 const _mesAbrev = [
   '',
   'Ene',
@@ -246,7 +653,7 @@ const _mesAbrev = [
 ];
 
 // ---------------------------------------------------------------------------
-// Widgets
+// Widgets estáticos
 // ---------------------------------------------------------------------------
 
 class _PageHeader extends StatelessWidget {
@@ -280,7 +687,7 @@ class _MesSelectorRow extends StatelessWidget {
     required this.onChanged,
   });
 
-  final List<String> meses; // claves "YYYY-MM"
+  final List<String> meses;
   final String? seleccionado;
   final ValueChanged<String> onChanged;
 
@@ -292,7 +699,6 @@ class _MesSelectorRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    // Scroll horizontal por si hay muchos meses
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -318,8 +724,7 @@ class _MesSelectorRow extends StatelessWidget {
               child: Text(
                 _label(mes),
                 style: TextStyle(
-                  fontWeight:
-                      activo ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: activo ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
             ),
@@ -531,13 +936,9 @@ class _EventoCard extends StatelessWidget {
                       text: evento.startTime,
                       color: color,
                     ),
-                    // Ubicación: URL → tappable, texto → normal, null → oculto
                     if (evento.location != null)
                       evento.hasLocationUrl
-                          ? _LocationLink(
-                              url: evento.location!,
-                              color: color,
-                            )
+                          ? _LocationLink(url: evento.location!, color: color)
                           : _InfoLine(
                               icon: Icons.location_on_outlined,
                               text: evento.location!,
@@ -621,8 +1022,7 @@ class _InfoLine extends StatelessWidget {
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color:
-                        Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
           ),
@@ -632,7 +1032,6 @@ class _InfoLine extends StatelessWidget {
   }
 }
 
-/// Muestra "Ver ubicación" como enlace tappable cuando la ubicación es una URL.
 class _LocationLink extends StatelessWidget {
   const _LocationLink({required this.url, required this.color});
 
